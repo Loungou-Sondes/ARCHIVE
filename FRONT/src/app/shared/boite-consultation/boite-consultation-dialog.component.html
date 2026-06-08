@@ -1,0 +1,299 @@
+<p-dialog
+  [modal]="true"
+  [visible]="consult.visible()"
+  (visibleChange)="consult.onVisibleChange($event)"
+  [style]="{ width: 'min(96vw, 46rem)' }"
+  styleClass="modern-dialog regles-dialog regles-dialog--create regles-dialog--rule-details boite-consult-dialog"
+  [blockScroll]="true"
+  appendTo="body"
+  [draggable]="false"
+  [dismissableMask]="true"
+  [closeOnEscape]="true"
+  [closable]="true"
+  (onHide)="consult.close()">
+  <ng-template pTemplate="header">
+    <div class="rule-details-head">
+      <div class="rule-details-head__brand">
+        <span class="rule-details-head__icon" aria-hidden="true">
+          <i class="pi pi-box"></i>
+        </span>
+        <div class="rule-details-head__text">
+          <h2 class="rule-details-head__title m-0">{{ 'boiteConsult.title' | transloco }}</h2>
+          <p class="rule-details-head__subtitle m-0">{{ 'boiteConsult.subtitle' | transloco }}</p>
+        </div>
+      </div>
+    </div>
+  </ng-template>
+
+  @if (consult.loading()) {
+    <div class="boite-consult__loading">
+      <i class="pi pi-spin pi-spinner" aria-hidden="true"></i>
+      <span>{{ 'common.loading' | transloco }}</span>
+    </div>
+  } @else if (consult.detail(); as d) {
+    <div class="boite-consult-dialog-layout">
+      <div class="boite-consult-dialog-body">
+    <div class="rule-details">
+      <div class="rule-details-hero">
+        <div class="rule-details-hero__main">
+          <span class="rule-details-hero__icon" aria-hidden="true">
+            <i class="pi pi-box"></i>
+          </span>
+          <div class="rule-details-hero__text">
+            <span class="rule-details__label">{{ 'boiteConsult.boxLabel' | transloco }}</span>
+            <span class="rule-details-hero__reference">{{ d.titre }}</span>
+          </div>
+        </div>
+        @if (d.typeEtatLabel) {
+          <p-tag
+            [value]="d.typeEtatLabel"
+            [severity]="etatSeverity(d.typeEtat)"
+            [rounded]="true"
+            styleClass="rule-details-hero__status"></p-tag>
+        }
+      </div>
+
+      @if (d.documentTypeTitle) {
+        <section class="regles-create-section rule-details-section" aria-labelledby="boite-detail-type-heading">
+          <h3 id="boite-detail-type-heading" class="regles-create-section__title">
+            <i class="pi pi-file" aria-hidden="true"></i>
+            {{ 'boiteConsult.sectionDocType' | transloco }}
+          </h3>
+          <div class="regles-create-section__body">
+            <div class="rule-details-type-chip">
+              <i class="pi pi-folder-open" aria-hidden="true"></i>
+              <span>{{ d.documentTypeTitle }}</span>
+            </div>
+          </div>
+        </section>
+      }
+
+      @if (d.numeroBordereau) {
+        <section class="regles-create-section rule-details-section" aria-labelledby="boite-detail-bordereau-heading">
+          <h3 id="boite-detail-bordereau-heading" class="regles-create-section__title">
+            <i class="pi pi-link" aria-hidden="true"></i>
+            {{ 'boiteConsult.sectionBordereau' | transloco }}
+          </h3>
+          <div class="regles-create-section__body rule-details-policy-grid">
+            <div class="rule-details-policy-item">
+              <span class="rule-details__label">{{ 'boiteConsult.colNumero' | transloco }}</span>
+              <div class="rule-details-type-chip">
+                <i class="pi pi-file" aria-hidden="true"></i>
+                <span>{{ d.numeroBordereau }}</span>
+              </div>
+            </div>
+            <div class="rule-details-policy-item">
+              <span class="rule-details__label">{{ 'boiteConsult.colVolume' | transloco }}</span>
+              <span class="boite-detail__pill">{{ bordereauBoitesLabel(d.nombreBoitesBordereau) }}</span>
+            </div>
+            @if (d.directionLabel) {
+              <div class="rule-details-policy-item boite-detail-policy-item--full">
+                <span class="rule-details__label">{{ 'boiteConsult.colDirection' | transloco }}</span>
+                <span class="boite-detail__pill">{{ d.directionLabel }}</span>
+              </div>
+            }
+          </div>
+        </section>
+      }
+
+      <section class="regles-create-section rule-details-section" aria-labelledby="boite-detail-info-heading">
+        <h3 id="boite-detail-info-heading" class="regles-create-section__title">
+          <i class="pi pi-info-circle" aria-hidden="true"></i>
+          {{ 'boiteConsult.sectionInfo' | transloco }}
+        </h3>
+        <div class="regles-create-section__body">
+          <div class="rule-details__periods-grid">
+            <div class="rule-details__period-card rule-details__period-card--active">
+              <span class="rule-details__period-icon" aria-hidden="true">
+                <i class="pi pi-calendar"></i>
+              </span>
+              <span class="rule-details__period-label">{{ 'boiteConsult.periodYears' | transloco }}</span>
+              <span class="rule-details__period-value">{{ anneesLabel(d.anneeMin, d.anneeMax) }}</span>
+            </div>
+            <div class="rule-details__period-card rule-details__period-card--semi">
+              <span class="rule-details__period-icon" aria-hidden="true">
+                <i class="pi pi-arrows-h"></i>
+              </span>
+              <span class="rule-details__period-label">{{ 'boiteConsult.periodMetrage' | transloco }}</span>
+              <span class="rule-details__period-value">{{ d.metrageCm }} {{ 'emplacement.cmUnit' | transloco }}</span>
+            </div>
+            <div class="rule-details__period-card rule-details__period-card--total">
+              <span class="rule-details__period-icon" aria-hidden="true">
+                <i class="pi pi-map-marker"></i>
+              </span>
+              <span class="rule-details__period-label">{{ 'boiteConsult.periodEmplacement' | transloco }}</span>
+              <span class="rule-details__period-value">{{ dash(d.emplacement) }}</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      @if (d.motsCles) {
+        <section class="regles-create-section rule-details-section" aria-labelledby="boite-detail-mc-heading">
+          <h3 id="boite-detail-mc-heading" class="regles-create-section__title">
+            <i class="pi pi-tags" aria-hidden="true"></i>
+            {{ 'boiteConsult.sectionKeywords' | transloco }}
+          </h3>
+          <div class="regles-create-section__body">
+            <div class="rule-details-type-chip">
+              <i class="pi pi-tags" aria-hidden="true"></i>
+              <span>{{ d.motsCles }}</span>
+            </div>
+          </div>
+        </section>
+      }
+
+      @if (d.contenu) {
+        <section class="regles-create-section rule-details-section" aria-labelledby="boite-detail-contenu-heading">
+          <h3 id="boite-detail-contenu-heading" class="regles-create-section__title">
+            <i class="pi pi-align-left" aria-hidden="true"></i>
+            {{ 'boiteConsult.sectionContent' | transloco }}
+          </h3>
+          <div class="regles-create-section__body">
+            <p class="rule-details__body-text">{{ d.contenu }}</p>
+          </div>
+        </section>
+      }
+
+      <section class="regles-create-section rule-details-section boite-dossiers-section" aria-labelledby="boite-detail-dossiers-heading">
+        <div class="boite-dossiers__head">
+          <h3 id="boite-detail-dossiers-heading" class="regles-create-section__title m-0">
+            <i class="pi pi-folder-open" aria-hidden="true"></i>
+            {{ 'boiteConsult.sectionDossiers' | transloco }}
+          </h3>
+          @if (consult.manageDossiers()) {
+            <button
+              pButton
+              pRipple
+              type="button"
+              [icon]="consult.showAddDossierForm() ? 'pi pi-times' : 'pi pi-plus'"
+              [label]="consult.showAddDossierForm() ? ('common.cancel' | transloco) : ('common.add' | transloco)"
+              class="p-button-sm p-button-outlined regles-btn-cancel"
+              (click)="toggleAddForm()"></button>
+          }
+        </div>
+        <div class="regles-create-section__body boite-dossiers__body">
+          <span class="boite-dossiers__count">{{ dossiersCountLabel(consult.dossiers().length) }}</span>
+
+          @if (consult.manageDossiers() && consult.showAddDossierForm()) {
+            <form class="boite-dossiers__form" (ngSubmit)="submitDossier(d.boiteId, d.anneeMin, d.anneeMax)">
+              <div class="boite-dossiers__field boite-dossiers__field--titre">
+                <label for="dossier-titre" class="regles-create-label">
+                  {{ 'boiteConsult.formTitle' | transloco }} <span class="req">*</span>
+                </label>
+                <input
+                  id="dossier-titre"
+                  pInputText
+                  class="w-full boite-dossiers-input regles-create-input"
+                  [ngModel]="newDossierTitre()"
+                  (ngModelChange)="newDossierTitre.set($event)"
+                  name="dossierTitre"
+                  required
+                  maxlength="500"
+                  [placeholder]="'boiteConsult.titlePlaceholder' | transloco" />
+              </div>
+              <div
+                class="boite-dossiers__field boite-dossiers__field--year"
+                [class.boite-dossiers__field--invalid]="dossierAnneeError()">
+                <label for="dossier-annee" class="regles-create-label">
+                  {{ 'boiteConsult.formYear' | transloco }} <span class="req">*</span>
+                </label>
+                <input
+                  id="dossier-annee"
+                  pInputText
+                  type="number"
+                  class="w-full boite-dossiers-input regles-create-input"
+                  [ngModel]="newDossierAnnee()"
+                  (ngModelChange)="onDossierAnneeInput($event, d.anneeMin, d.anneeMax)"
+                  name="dossierAnnee"
+                  required
+                  [min]="d.anneeMin"
+                  [max]="d.anneeMax"
+                  step="1" />
+                @if (dossierAnneeError(); as anneeErr) {
+                  <small class="boite-dossiers__year-error" role="alert">{{ anneeErr }}</small>
+                }
+              </div>
+              <div class="boite-dossiers__field boite-dossiers__field--wide">
+                <label for="dossier-contenu" class="regles-create-label">{{ 'boiteConsult.formContent' | transloco }}</label>
+                <textarea
+                  id="dossier-contenu"
+                  pTextarea
+                  class="w-full boite-dossiers-input boite-dossiers-textarea regles-create-input"
+                  rows="3"
+                  [ngModel]="newDossierContenu()"
+                  (ngModelChange)="newDossierContenu.set($event)"
+                  name="dossierContenu"
+                  maxlength="4000"
+                  [placeholder]="'boiteConsult.contentPlaceholder' | transloco"></textarea>
+              </div>
+              <div class="boite-dossiers__form-actions">
+                <button
+                  pButton
+                  pRipple
+                  type="submit"
+                  icon="pi pi-check"
+                  [label]="'common.save' | transloco"
+                  class="p-button-sm regles-btn-save--create"
+                  [disabled]="consult.dossierSaving() || !newDossierTitre().trim()"></button>
+              </div>
+            </form>
+          }
+
+          @if (consult.dossiersLoading()) {
+            <p class="boite-dossiers__hint">
+              <i class="pi pi-spin pi-spinner"></i> {{ 'boiteConsult.dossiersLoading' | transloco }}
+            </p>
+          } @else if (consult.dossiers().length === 0) {
+            <p class="boite-dossiers__hint">
+              @if (consult.manageDossiers()) {
+                {{ 'boiteConsult.dossiersEmptyManage' | transloco }}
+              } @else {
+                {{ 'boiteConsult.dossiersEmptyReadonly' | transloco }}
+              }
+            </p>
+          } @else {
+            <ul class="boite-dossiers__list">
+              @for (doc of consult.dossiers(); track doc.id) {
+                <li class="boite-dossier-card">
+                  <div class="boite-dossier-card__head">
+                    <h4 class="boite-dossier-card__titre">{{ doc.titre }}</h4>
+                    <span class="boite-dossier-card__year">{{ doc.annee }}</span>
+                    @if (consult.manageDossiers()) {
+                      <button
+                        pButton
+                        pRipple
+                        type="button"
+                        icon="pi pi-trash"
+                        class="p-button-rounded p-button-text p-button-danger p-button-sm boite-dossier-card__delete"
+                        [attr.aria-label]="'boiteConsult.deleteDossierAria' | transloco"
+                        (click)="deleteDossier(d.boiteId, doc.id)"></button>
+                    }
+                  </div>
+                  @if (doc.contenu) {
+                    <p class="boite-dossier-card__contenu">{{ doc.contenu }}</p>
+                  }
+                </li>
+              }
+            </ul>
+          }
+        </div>
+      </section>
+    </div>
+      </div>
+    </div>
+  }
+
+  <ng-template pTemplate="footer">
+    <div class="regles-create-footer rule-details__footer">
+      <button
+        pButton
+        pRipple
+        type="button"
+        [label]="'common.close' | transloco"
+        icon="pi pi-times"
+        class="p-button-outlined regles-btn-cancel rule-details__close-btn"
+        (click)="consult.close()"></button>
+    </div>
+  </ng-template>
+</p-dialog>

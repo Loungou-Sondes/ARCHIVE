@@ -1,0 +1,236 @@
+<div class="recherche-host">
+  <p-toast position="top-center" />
+  <app-boite-consultation-dialog />
+  <div class="recherche-page">
+    <section class="card modern-card search-card">
+      <div class="search-header">
+        <div class="flex align-items-center gap-3">
+          <div class="header-icon-container">
+            <i class="pi pi-search" aria-hidden="true"></i>
+          </div>
+          <div>
+            <h4 class="card-title m-0">{{ 'recherche.title' | transloco }}</h4>
+            <p class="card-subtitle m-0 mt-1">{{ 'recherche.subtitle' | transloco }}</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="search-grid" (keyup.enter)="runSearch()">
+        <div class="search-field">
+          <label class="search-field__label" for="recherche-nom">{{ 'recherche.boxName' | transloco }}</label>
+          <div class="search-row">
+            <i class="pi pi-box" aria-hidden="true"></i>
+            <input
+              id="recherche-nom"
+              pInputText
+              type="text"
+              autocomplete="off"
+              class="w-full recherche-input"
+              [placeholder]="'recherche.boxNamePlaceholder' | transloco"
+              [ngModel]="nom()"
+              (ngModelChange)="nom.set($event)" />
+          </div>
+        </div>
+
+        <div class="search-field">
+          <label class="search-field__label" for="recherche-mc">{{ 'recherche.keywords' | transloco }}</label>
+          <div class="search-row">
+            <i class="pi pi-tags" aria-hidden="true"></i>
+            <input
+              id="recherche-mc"
+              pInputText
+              type="text"
+              autocomplete="off"
+              class="w-full recherche-input"
+              [placeholder]="'recherche.keywordsPlaceholder' | transloco"
+              [ngModel]="motsCles()"
+              (ngModelChange)="motsCles.set($event)" />
+          </div>
+        </div>
+
+        <div class="search-field">
+          <label class="search-field__label" for="recherche-amin">{{ 'recherche.yearMin' | transloco }}</label>
+          <div class="search-row">
+            <i class="pi pi-calendar" aria-hidden="true"></i>
+            <input
+              id="recherche-amin"
+              pInputText
+              type="number"
+              class="w-full recherche-input"
+              [placeholder]="'recherche.yearPlaceholder' | transloco: { year: 1990 }"
+              min="1800"
+              max="2100"
+              [ngModel]="anneeMin()"
+              (ngModelChange)="onAnneeChange('min', $event)" />
+          </div>
+        </div>
+
+        <div class="search-field">
+          <label class="search-field__label" for="recherche-amax">{{ 'recherche.yearMax' | transloco }}</label>
+          <div class="search-row">
+            <i class="pi pi-calendar" aria-hidden="true"></i>
+            <input
+              id="recherche-amax"
+              pInputText
+              type="number"
+              class="w-full recherche-input"
+              [placeholder]="'recherche.yearPlaceholder' | transloco: { year: 2010 }"
+              min="1800"
+              max="2100"
+              [ngModel]="anneeMax()"
+              (ngModelChange)="onAnneeChange('max', $event)" />
+          </div>
+        </div>
+      </div>
+
+      <div class="search-actions">
+        <button
+          pButton
+          pRipple
+          type="button"
+          [label]="'recherche.searchBtn' | transloco"
+          icon="pi pi-search"
+          class="search-btn search-btn--primary"
+          [loading]="loading()"
+          (click)="runSearch()"></button>
+        <button
+          pButton
+          pRipple
+          type="button"
+          [label]="'common.reset' | transloco"
+          icon="pi pi-refresh"
+          class="search-btn search-btn--reset"
+          [disabled]="!hasSearched() && !hasAnyCriterion()"
+          (click)="clearSearch()"></button>
+      </div>
+    </section>
+
+    @if (!hasSearched()) {
+      <section class="recherche-welcome card modern-card" [attr.aria-label]="'recherche.welcomeAria' | transloco">
+        <div class="recherche-welcome__bg" aria-hidden="true">
+          <span class="recherche-welcome__orb recherche-welcome__orb--1"></span>
+          <span class="recherche-welcome__orb recherche-welcome__orb--2"></span>
+          <span class="recherche-welcome__orb recherche-welcome__orb--3"></span>
+        </div>
+
+        <div class="recherche-welcome__inner">
+          <div class="recherche-welcome__hero">
+            <div class="recherche-welcome__visual" aria-hidden="true">
+              <span class="recherche-welcome__box recherche-welcome__box--back"><i class="pi pi-box"></i></span>
+              <span class="recherche-welcome__box recherche-welcome__box--mid"><i class="pi pi-box"></i></span>
+              <span class="recherche-welcome__box recherche-welcome__box--front"><i class="pi pi-search"></i></span>
+            </div>
+            <div class="recherche-welcome__copy">
+              <h3 class="recherche-welcome__title m-0">{{ 'recherche.welcomeTitle' | transloco }}</h3>
+              <p class="recherche-welcome__text m-0">
+                {{ 'recherche.welcomeTextBefore' | transloco }}
+                <strong>{{ 'recherche.searchBtn' | transloco }}</strong>
+                {{ 'recherche.welcomeTextAfter' | transloco }}
+              </p>
+            </div>
+          </div>
+
+          <div class="recherche-welcome__examples">
+            <span class="recherche-welcome__examples-label">{{ 'recherche.examplesLabel' | transloco }}</span>
+            <span class="recherche-welcome__chip">
+              <i class="pi pi-box" aria-hidden="true"></i> {{ 'recherche.exampleBox' | transloco }}
+            </span>
+            <span class="recherche-welcome__chip">
+              <i class="pi pi-tags" aria-hidden="true"></i> {{ 'recherche.exampleKeyword' | transloco }}
+            </span>
+            <span class="recherche-welcome__chip">
+              <i class="pi pi-calendar" aria-hidden="true"></i> {{ 'recherche.exampleYears' | transloco }}
+            </span>
+          </div>
+        </div>
+      </section>
+    } @else {
+      <section class="card modern-card table-card">
+        <div class="flex align-items-center justify-content-between mb-4 flex-wrap gap-3">
+          <div class="flex align-items-center gap-2 flex-wrap">
+            <div class="header-icon-container header-icon-container--muted">
+              <i class="fa-solid fa-boxes-stacked" aria-hidden="true"></i>
+            </div>
+            <div>
+              <h4 class="card-title m-0">{{ 'recherche.results' | transloco }}</h4>
+              <span class="badge-count">{{ countLabel() }}</span>
+            </div>
+          </div>
+          <button
+            pButton
+            pRipple
+            type="button"
+            icon="pi pi-refresh"
+            class="p-button-rounded p-button-text icon-circle-btn"
+            [pTooltip]="'recherche.refreshSearch' | transloco"
+            tooltipPosition="bottom"
+            (click)="refreshTable()"></button>
+        </div>
+
+        <p-table
+          #dt
+          [value]="rows()"
+          [lazy]="true"
+          (onLazyLoad)="onLazyLoad($event)"
+          [loading]="loading()"
+          [paginator]="true"
+          [rows]="pageSize"
+          [totalRecords]="totalRecords()"
+          [rowsPerPageOptions]="[10, 20, 50]"
+          [showCurrentPageReport]="true"
+          [currentPageReportTemplate]="pageReportTemplate()"
+          styleClass="modern-table recherche-table"
+          [tableStyle]="{ 'min-width': '100%' }">
+          <ng-template pTemplate="header">
+            <tr>
+              <th class="col-nom">{{ 'recherche.colName' | transloco }}</th>
+              <th class="col-annees">{{ 'recherche.colYears' | transloco }}</th>
+              <th class="col-type">{{ 'recherche.colCategory' | transloco }}</th>
+              <th class="col-bordereau">{{ 'recherche.colSlip' | transloco }}</th>
+              <th class="col-etat">{{ 'recherche.colState' | transloco }}</th>
+              <th class="col-empl">{{ 'recherche.colLocation' | transloco }}</th>
+              <th class="text-center col-actions">{{ 'recherche.colActions' | transloco }}</th>
+            </tr>
+          </ng-template>
+          <ng-template pTemplate="body" let-row>
+            <tr>
+              <td class="cell-titre col-nom">{{ row.titre }}</td>
+              <td class="col-annees">{{ anneesLabel(row.anneeMin, row.anneeMax) }}</td>
+              <td class="col-type">{{ row.documentTypeTitle || ('common.emDash' | transloco) }}</td>
+              <td class="col-bordereau">
+                <span class="cell-bordereau">{{ row.numeroBordereau }}</span>
+                @if (row.directionLabel) {
+                  <span class="cell-muted"> · {{ row.directionLabel }}</span>
+                }
+              </td>
+              <td class="col-etat">
+                @if (row.typeEtatLabel) {
+                  <p-tag [value]="row.typeEtatLabel" [severity]="etatSeverity(row.typeEtat)" [rounded]="true"></p-tag>
+                } @else {
+                  {{ 'common.emDash' | transloco }}
+                }
+              </td>
+              <td class="cell-empl col-empl">{{ row.emplacement || ('common.emDash' | transloco) }}</td>
+              <td class="text-center col-actions">
+                <button
+                  pButton
+                  pRipple
+                  type="button"
+                  icon="pi pi-eye"
+                  class="p-button-rounded p-button-text modern-icon-btn"
+                  [pTooltip]="'recherche.consultBox' | transloco"
+                  tooltipPosition="bottom"
+                  (click)="openBoiteDetail(row)"></button>
+              </td>
+            </tr>
+          </ng-template>
+          <ng-template pTemplate="emptymessage">
+            <tr>
+              <td colspan="7" class="empty-hint">{{ 'recherche.emptyResults' | transloco }}</td>
+            </tr>
+          </ng-template>
+        </p-table>
+      </section>
+    }
+  </div>
+</div>

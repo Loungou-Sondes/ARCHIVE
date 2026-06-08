@@ -1,0 +1,180 @@
+:root {
+  // Primary Colors
+  --primary: #6366f1;
+  --primary-dark: #4f46e5;
+  --primary-light: #a5b4fc;
+  --secondary: #64748b;
+
+  // Status Colors
+  --success: #22c55e;
+  --success-dark: #16a34a;
+  --success-light: #dcfce7;
+  --warning: #f59e0b;
+  --warning-light: #fef3c7;
+  --danger: #ef4444;
+  --danger-dark: #dc2626;
+  --danger-light: #fee2e2;
+  --info: #3b82f6;
+  --info-light: #dbeafe;
+
+  // Neutral Colors - Professional Grayscale
+  --gray-50: #fafafa;
+  --gray-100: #f4f4f5;
+  --gray-200: #e4e4e7;
+  --gray-300: #d4d4d8;
+  --gray-400: #a1a1aa;
+  --gray-500: #71717a;
+  --gray-600: #52525b;
+  --gray-700: #3f3f46;
+  --gray-800: #27272a;
+  --gray-900: #18181b;
+  --gray-950: #09090b;
+
+  // Accent Colors
+  --accent-purple: #8b5cf6;
+  --accent-teal: #14b8a6;
+  --accent-amber: #f59e0b;
+  --accent-rose: #f43f5e;
+
+  // Border Radius
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-2xl: 20px;
+
+  // Shadows
+  --shadow-xs: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --shadow-sm: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+  --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+  --shadow-2xl: 0 25px 50px -12px rgb(0 0 0 / 0.25);
+
+  // Gradients
+  --gradient-primary: linear-gradient(135deg, #4f46e5 0%, #6366f1 100%);
+  --gradient-primary-dark: linear-gradient(135deg, #3730a3 0%, #4f46e5 100%);
+  --gradient-success: linear-gradient(135deg, #22c55e 0%, #15803d 100%);
+  --gradient-danger: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+
+  // Translucent variants
+  --primary-08: rgba(99, 102, 241, 0.08);
+  --primary-05: rgba(99, 102, 241, 0.05);
+  --primary-02: rgba(99, 102, 241, 0.02);
+  --success-08: rgba(34, 197, 94, 0.08);
+  --warning-08: rgba(245, 158, 11, 0.08);
+  --danger-08: rgba(239, 68, 68, 0.08);
+  --teal-10: rgba(20, 184, 166, 0.1);
+
+  // Dashboard & Chart Colors
+  --chart-indigo: #4f46e5;
+  --chart-indigo-bg: #eef2ff;
+  --chart-emerald: #059669;
+  --chart-emerald-bg: #d1fae5;
+  --chart-amber: #b45309;
+  --chart-amber-bg: #ffedd5;
+  --chart-violet: #7c3aed;
+  --chart-violet-bg: #ede9fe;
+  --chart-pink: #db2777;
+  --chart-pink-bg: #fce7f3;
+  --chart-orange: #ea580c;
+  --chart-orange-bg: #ffedd5;
+}
+
+// SCSS Variables for backward compatibility
+$primary: var(--primary);
+$font-family: var(--font-family);
+$primary-dark: var(--primary-dark);
+$primary-light: var(--primary-light);
+$secondary: var(--secondary);
+
+$success: var(--success);
+$success-dark: var(--success-dark);
+$success-light: var(--success-light);
+$warning: var(--warning);
+$warning-light: var(--warning-light);
+$danger: var(--danger);
+$danger-dark: var(--danger-dark);
+$danger-light: var(--danger-light);
+$info: var(--info);
+$info-light: var(--info-light);
+
+$gray-50: var(--gray-50);
+$gray-100: var(--gray-100);
+$gray-200: var(--gray-200);
+$gray-300: var(--gray-300);
+$gray-400: var(--gray-400);
+$gray-500: var(--gray-500);
+$gray-600: var(--gray-600);
+$gray-700: var(--gray-700);
+$gray-800: var(--gray-800);
+$gray-900: var(--gray-900);
+$gray-950: var(--gray-950);
+
+$accent-purple: var(--accent-purple);
+$accent-teal: var(--accent-teal);
+$accent-amber: var(--accent-amber);
+$accent-rose: var(--accent-rose);
+
+$radius-sm: var(--radius-sm);
+$radius-md: var(--radius-md);
+$radius-lg: var(--radius-lg);
+$radius-xl: var(--radius-xl);
+$radius-2xl: var(--radius-2xl);
+
+// Border radius aliases for backward compatibility
+$border-radius-sm: $radius-sm;
+$border-radius-md: $radius-md;
+$border-radius-lg: $radius-lg;
+$border-radius-xl: $radius-xl;
+$border-radius-xxl: $radius-2xl;
+
+
+$shadow-xs: var(--shadow-xs);
+$shadow-sm: var(--shadow-sm);
+$shadow-md: var(--shadow-md);
+$shadow-lg: var(--shadow-lg);
+$shadow-xl: var(--shadow-xl);
+$shadow-2xl: var(--shadow-2xl);
+
+// Gradients
+$gradient-primary: var(--gradient-primary);
+$gradient-primary-dark: var(--gradient-primary-dark);
+$gradient-success: var(--gradient-success);
+$gradient-danger: var(--gradient-danger);
+
+// Translucent colors
+$primary-08: var(--primary-08);
+$primary-05: var(--primary-05);
+$primary-02: var(--primary-02);
+$success-08: var(--success-08);
+$warning-08: var(--warning-08);
+$danger-08: var(--danger-08);
+$teal-10: var(--teal-10);
+
+// Backward compatibility for neutral
+$neutral-50: $gray-50;
+$neutral-100: $gray-100;
+$neutral-200: $gray-200;
+$neutral-300: $gray-300;
+$neutral-400: $gray-400;
+$neutral-500: $gray-500;
+$neutral-600: $gray-600;
+$neutral-700: $gray-700;
+$neutral-800: $gray-800;
+$neutral-900: $gray-900;
+$neutral-950: $gray-950;
+
+// Dashboard & Chart Colors
+$chart-indigo: var(--chart-indigo);
+$chart-indigo-bg: var(--chart-indigo-bg);
+$chart-emerald: var(--chart-emerald);
+$chart-emerald-bg: var(--chart-emerald-bg);
+$chart-amber: var(--chart-amber);
+$chart-amber-bg: var(--chart-amber-bg);
+$chart-violet: var(--chart-violet);
+$chart-violet-bg: var(--chart-violet-bg);
+$chart-pink: var(--chart-pink);
+$chart-pink-bg: var(--chart-pink-bg);
+$chart-orange: var(--chart-orange);
+$chart-orange-bg: var(--chart-orange-bg);

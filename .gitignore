@@ -1,0 +1,33 @@
+# IDE / éditeur
+.idea/
+.vscode/
+*.iml
+*.iws
+*.ipr
+.DS_Store
+Thumbs.db
+
+# Backend (Maven / Spring)
+**/target/
+**/.apt_generated
+**/.classpath
+**/.factorypath
+**/.project
+**/.settings/
+**/.springBeans
+**/.sts4-cache
+
+# Config locale (chaque développeur crée le sien — non versionné)
+BACK/src/main/resources/application.properties
+
+# Frontend (Angular / Node)
+**/node_modules/
+**/.angular/cache/
+**/dist/
+**/tmp/
+**/out-tsc/
+npm-debug.log
+yarn-error.log
+
+# Logs
+*.log

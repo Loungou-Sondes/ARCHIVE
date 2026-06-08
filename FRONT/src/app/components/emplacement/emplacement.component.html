@@ -1,0 +1,948 @@
+<div class="emplacement-host">
+  <p-toast position="top-center" styleClass="emplacement-toast" [baseZIndex]="15000" />
+  <p-confirmDialog styleClass="modern-dialog modern-confirm-dialog emplacement-dialog" />
+
+  <div class="emplacement-page">
+  @if (view() === 'list') {
+    <header class="card modern-card page-intro emplacement-page-intro mb-3">
+      <div class="flex flex-column md:flex-row align-items-center justify-content-between gap-4">
+        <div class="flex align-items-center gap-3">
+          <div class="header-icon-container emplacement-page-intro__icon" aria-hidden="true">
+            <i class="pi pi-th-large"></i>
+          </div>
+          <div>
+            <h1 class="emplacement-page-title m-0">{{ 'emplacement.pageTitle' | transloco }}</h1>
+            @if (!loading()) {
+              <p class="emplacement-page-lead m-0 mt-2">
+                <strong>{{ emplacementListSummary().total }}</strong>&nbsp;{{ epiRegisteredLabel(emplacementListSummary().total) }}
+                @if (emplacementListSummary().searchActive) {
+                  <span class="emplacement-page-lead__sep" aria-hidden="true">·</span>
+                  <strong>{{ filteredDisplayedLabel(emplacementListSummary().displayed) }}</strong>
+                }
+                <span class="emplacement-page-lead__sep" aria-hidden="true">·</span>
+                <strong>{{ totalLinearCmCumulativeLabel(emplacementListSummary().totalCm) }}</strong>
+              </p>
+            } @else {
+              <p class="emplacement-page-lead m-0 mt-2">{{ 'emplacement.loadingSummary' | transloco }}</p>
+            }
+          </div>
+        </div>
+        <div class="flex flex-wrap gap-2 justify-content-end">
+          <button
+            pButton
+            pRipple
+            type="button"
+            [label]="'common.add' | transloco"
+            icon="pi pi-plus"
+            class="modern-button"
+            (click)="openAddChoice()"></button>
+          <input
+            #epiImportInput
+            type="file"
+            class="epi-import-input"
+            accept=".xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel"
+            (change)="onEpiImportFileSelected($event)" />
+          @if (totalRecords() > 0) {
+            <button
+              pButton
+              pRipple
+              type="button"
+              [label]="'emplacement.deleteLastEpi' | transloco"
+              icon="pi pi-trash"
+              class="modern-danger-btn"
+              (click)="confirmDeleteLastEpi()"></button>
+          }
+        </div>
+      </div>
+    </header>
+
+    <section class="card modern-card mb-3 emplacement-search-card" aria-labelledby="emplacement-search-heading">
+      <div class="emplacement-search-card__head">
+        <div class="header-icon-container emplacement-search-card__icon" aria-hidden="true">
+          <i class="pi pi-search"></i>
+        </div>
+        <div>
+          <h2 id="emplacement-search-heading" class="emplacement-search-title m-0">{{ 'emplacement.searchTitle' | transloco }}</h2>
+          <p class="emplacement-search-hint m-0 mt-1">
+            {{ 'emplacement.searchHintBefore' | transloco }} <strong>{{ 'emplacement.searchHintBold' | transloco }}</strong> {{ 'emplacement.searchHintAfter' | transloco }}
+          </p>
+        </div>
+      </div>
+      <div class="flex flex-column sm:flex-row gap-3 align-items-stretch sm:align-items-center emplacement-search-card__row">
+        <div class="search-row flex-1">
+          <i class="pi pi-search" aria-hidden="true"></i>
+          <input
+            pInputText
+            type="search"
+            class="w-full emplacement-field emplacement-search-input"
+            [placeholder]="'emplacement.searchPlaceholder' | transloco"
+            [ngModel]="searchText()"
+            (ngModelChange)="searchText.set($event); onSearchValueChange()"
+            aria-describedby="emplacement-search-heading" />
+        </div>
+        <button
+          pButton
+          pRipple
+          type="button"
+          [label]="'common.refresh' | transloco"
+          icon="pi pi-refresh"
+          class="p-button-outlined emplacement-refresh-btn shrink-0"
+          (click)="refreshEpis()"></button>
+      </div>
+    </section>
+
+    @if (loading()) {
+      <div class="loading-block card modern-card">
+        <p-progressBar mode="indeterminate" [style]="{ height: '6px' }" />
+        <p class="muted mt-3 mb-0">{{ 'emplacement.loadingEpis' | transloco }}</p>
+      </div>
+    } @else if (epis().length === 0) {
+      <div class="empty-state card modern-card">
+        <i class="pi pi-inbox empty-state__icon" aria-hidden="true"></i>
+        <p>{{ 'emplacement.emptyState' | transloco }}</p>
+        <button pButton pRipple type="button" [label]="'common.add' | transloco" icon="pi pi-plus" class="modern-button" (click)="openAddChoice()"></button>
+      </div>
+    } @else {
+      <div class="epi-grid">
+        @for (epi of epis(); track epi.id) {
+          <article class="card modern-card epi-card overflow-hidden cursor-pointer" (click)="openEpi(epi)">
+            <div class="epi-card__header flex align-items-center justify-content-between gap-2">
+              <div class="flex align-items-center gap-3">
+                <div class="epi-card__icon">
+                  <i class="pi pi-clone" aria-hidden="true"></i>
+                </div>
+                <div>
+                  <h3 class="epi-card__title m-0">{{ epi.numero }}</h3>
+                  <span class="epi-card__type">{{ epi.type }}</span>
+                </div>
+              </div>
+              <div class="epi-card__actions flex align-items-center gap-1" (click)="$event.stopPropagation()">
+                <button
+                  pButton
+                  pRipple
+                  type="button"
+                  icon="pi pi-arrow-up-right-and-arrow-down-left-from-center"
+                  class="p-button-rounded p-button-text p-button-lg epi-card__resize-btn"
+                  [pTooltip]="'emplacement.resizeEpiTooltip' | transloco"
+                  tooltipPosition="left"
+                  [attr.aria-label]="'emplacement.resizeEpiAria' | transloco"
+                  (click)="openResize(epi, $event)"></button>
+                <i class="pi pi-arrow-right text-gray-400 epi-card__open-hint" aria-hidden="true"></i>
+              </div>
+            </div>
+            <div class="epi-card__body">
+              <div class="flex flex-wrap gap-2">
+                <span class="badge-custom badge-primary">
+                  <i class="pi pi-arrows-h mr-1"></i>{{ 'emplacement.badgeTravers' | transloco: { count: epi.traversCount } }}
+                </span>
+                <span class="badge-custom badge-secondary">
+                  <i class="pi pi-bars mr-1"></i>{{ 'emplacement.badgeTablettes' | transloco: { count: epi.tabletteRows } }}
+                </span>
+                <span class="badge-custom badge-primary">
+                  <i class="pi pi-table mr-1"></i>{{ 'emplacement.badgeBlocsPerTablette' | transloco: { count: epi.blocsPerTablette } }}
+                </span>
+              </div>
+              <p class="epi-card__hint m-0 mt-3 flex align-items-center justify-content-between">
+                <span>{{ 'emplacement.cardTotalLinearCm' | transloco: { cm: epi.totalLinearCm } }}</span>
+                <span>{{ 'emplacement.openMatrix' | transloco }}</span>
+              </p>
+            </div>
+          </article>
+        }
+      </div>
+      @if (totalPages() > 1) {
+        <nav class="epi-pager flex align-items-center justify-content-center gap-3 mt-3" aria-label="Pagination">
+          <button
+            pButton
+            pRipple
+            type="button"
+            icon="pi pi-chevron-left"
+            class="p-button-rounded p-button-outlined"
+            [disabled]="currentPage() <= 0 || loading()"
+            (click)="goEpiPage(currentPage() - 1)"></button>
+          <span class="epi-pager__label">{{ currentPage() + 1 }} / {{ totalPages() }}</span>
+          <button
+            pButton
+            pRipple
+            type="button"
+            icon="pi pi-chevron-right"
+            class="p-button-rounded p-button-outlined"
+            [disabled]="currentPage() >= totalPages() - 1 || loading()"
+            (click)="goEpiPage(currentPage() + 1)"></button>
+        </nav>
+      }
+    }
+  }
+
+  @if (view() === 'matrix') {
+    <header class="card modern-card matrix-toolbar mb-3">
+      <div class="flex flex-column lg:flex-row align-items-start lg:align-items-center justify-content-between gap-4">
+        <div class="flex align-items-center gap-3">
+          <button
+            pButton
+            pRipple
+            type="button"
+            icon="pi pi-arrow-left"
+            class="p-button-rounded p-button-text"
+            (click)="backToList()"
+            [pTooltip]="'emplacement.backToListTooltip' | transloco"
+            tooltipPosition="bottom"></button>
+          <div>
+            @if (matrixData(); as md) {
+              <h4 class="card-title m-0 matrix-page-title">{{ 'emplacement.pageTitle' | transloco }}</h4>
+              <p class="page-lead m-0 mt-1">
+                {{ 'emplacement.matrixEpiLead' | transloco: { numero: md.epi.numero, tablettes: md.epi.tabletteRows, travers: md.epi.traversCount } }}
+                @if (computedEpieLinearCm() > 0) {
+                  <span>{{ 'emplacement.matrixLinearSuffix' | transloco: { cm: computedEpieLinearCm() } }}</span>
+                }
+              </p>
+            } @else {
+              <h4 class="card-title m-0">{{ 'emplacement.matrixFallbackTitle' | transloco }}</h4>
+              <p class="page-lead m-0 mt-1">{{ 'common.loading' | transloco }}</p>
+            }
+          </div>
+        </div>
+        @if (currentEpi(); as epi) {
+          <button
+            pButton
+            pRipple
+            type="button"
+            icon="pi pi-arrow-up-right-and-arrow-down-left-from-center"
+            [label]="'emplacement.resizeBtn' | transloco"
+            class="p-button-outlined matrix-resize-epi-btn"
+            (click)="openResizeFromMatrix()"
+            [pTooltip]="'emplacement.resizeFromMatrixTooltip' | transloco"
+            tooltipPosition="bottom"></button>
+        }
+      </div>
+    </header>
+
+    @if (loadingMatrix()) {
+      <div class="loading-block card modern-card">
+        <p-progressBar mode="indeterminate" [style]="{ height: '6px' }" />
+        <p class="muted mt-3 mb-0">{{ 'emplacement.loadingMatrix' | transloco }}</p>
+      </div>
+    } @else if (matrixData(); as data) {
+      <div class="card modern-card matrix-controls mb-3">
+        <div class="flex flex-column lg:flex-row flex-wrap gap-4 justify-content-between">
+          <div class="flex flex-wrap align-items-center gap-2 matrix-control-group">
+            <span class="control-label matrix-control-label">{{ 'emplacement.labelTablettes' | transloco }}</span>
+            <button
+              pButton
+              pRipple
+              type="button"
+              icon="pi pi-plus"
+              [rounded]="true"
+              class="matrix-icon-btn matrix-icon-btn--add"
+              [disabled]="matrixRows() >= maxDim || structureBusy()"
+              (click)="addRow()"
+              [pTooltip]="'emplacement.addTabletteTooltip' | transloco"
+              [attr.aria-label]="'emplacement.addTabletteAria' | transloco"
+              tooltipPosition="top"></button>
+            <button
+              pButton
+              pRipple
+              type="button"
+              icon="pi pi-minus"
+              [rounded]="true"
+              class="matrix-icon-btn matrix-icon-btn--remove"
+              [disabled]="matrixRows() <= 1 || structureBusy()"
+              (click)="removeLastRow()"
+              [pTooltip]="'emplacement.removeLastTabletteTooltip' | transloco"
+              [attr.aria-label]="'emplacement.removeLastTabletteAria' | transloco"
+              tooltipPosition="top"></button>
+            <span class="matrix-count-pill">{{ matrixRows() }}</span>
+          </div>
+          <div class="flex flex-wrap align-items-center gap-2 matrix-control-group">
+            <span class="control-label matrix-control-label">{{ 'emplacement.labelTravers' | transloco }}</span>
+            <button
+              pButton
+              pRipple
+              type="button"
+              icon="pi pi-plus"
+              [rounded]="true"
+              class="matrix-icon-btn matrix-icon-btn--add"
+              [disabled]="matrixCols() >= maxDim || structureBusy()"
+              (click)="addColumn()"
+              [pTooltip]="'emplacement.addTraverseTooltip' | transloco"
+              [attr.aria-label]="'emplacement.addTraverseAria' | transloco"
+              tooltipPosition="top"></button>
+            <button
+              pButton
+              pRipple
+              type="button"
+              icon="pi pi-minus"
+              [rounded]="true"
+              class="matrix-icon-btn matrix-icon-btn--remove"
+              [disabled]="matrixCols() <= 1 || structureBusy()"
+              (click)="removeLastColumn()"
+              [pTooltip]="'emplacement.removeLastTraverseTooltip' | transloco"
+              [attr.aria-label]="'emplacement.removeLastTraverseAria' | transloco"
+              tooltipPosition="top"></button>
+            <span class="matrix-count-pill">{{ matrixCols() }}</span>
+          </div>
+        </div>
+      </div>
+
+      <div
+        class="matrix-shell card modern-card matrix-shell--scroll"
+        [class.matrix-shell--dense]="matrixCols() >= 7">
+        <table class="matrix-table">
+          <thead>
+            <tr>
+              <th class="corner-cell corner-hash" scope="col" [attr.aria-label]="'emplacement.rowIndexAria' | transloco">#</th>
+              @for (tr of data.traversHeaders; track tr.index) {
+                <th class="travers-th" scope="col" [attr.aria-label]="traversHeaderAriaLabel(tr.numero)">
+                  <div class="travers-head" [class.travers-head--spotlight]="traversHeadSpotlighted(tr.index)">
+                    <span class="travers-num">{{ tr.numero }}</span>
+                    @if (traversLinearCm() > 0) {
+                      <span class="travers-meta">{{ 'emplacement.traversLinearCm' | transloco: { cm: traversLinearCm() } }}</span>
+                    }
+                  </div>
+                </th>
+              }
+            </tr>
+          </thead>
+          <tbody>
+            @for (row of data.rows; track $index; let r = $index) {
+              <tr>
+                <th class="row-th" scope="row">{{ r + 1 }}</th>
+                @for (cell of row; track cell.tabletteId; let c = $index) {
+                  <td class="matrix-td">
+                    <button
+                      type="button"
+                      class="tablette-chip"
+                      [class.tablette-chip--spotlight]="cellSpotlighted(cell)"
+                      (click)="openTablette(cell)">
+                      <span class="tablette-chip__code">{{ cell.tabletteNumero }}</span>
+                      <span class="tablette-chip__count">
+                        <i class="pi pi-box tablette-chip__box-icon" aria-hidden="true"></i>
+                        <span
+                        class="tablette-chip__ratio"
+                        [class.tablette-chip__ratio--partial]="cell.occupiedCount > 0 && cell.occupiedCount < cell.totalCount"
+                        [class.tablette-chip__ratio--full]="cell.occupiedCount >= cell.totalCount && cell.totalCount > 0">
+                        {{ cell.occupiedCount }}/{{ cell.totalCount }}
+                      </span>
+                      </span>
+                      @if (tabletteLinearCm(cell) > 0) {
+                        <span class="tablette-chip__cm">{{ tabletteLinearCm(cell) }} {{ 'emplacement.cmUnit' | transloco }}</span>
+                      }
+                    </button>
+                  </td>
+                }
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+  }
+
+  </div>
+
+  <p-dialog
+    [header]="'emplacement.addChoiceDialogTitle' | transloco"
+    [modal]="true"
+    [visible]="showAddChoiceDialog()"
+    (visibleChange)="showAddChoiceDialog.set($event)"
+    [style]="{ width: 'min(820px, 94vw)' }"
+    styleClass="modern-dialog emplacement-dialog"
+    [draggable]="false">
+    <div class="add-choice-panel">
+      <p class="add-choice-lead m-0">{{ 'emplacement.addChoiceLead' | transloco }}</p>
+      <div class="add-choice-grid">
+        <button type="button" class="add-choice-card add-choice-card--excel" (click)="chooseExcelAdd()">
+          <span class="add-choice-card__icon add-choice-card__icon--excel" aria-hidden="true">
+            <i class="pi pi-file-excel"></i>
+          </span>
+          <span class="add-choice-card__content">
+            <span class="add-choice-card__title">{{ 'emplacement.addChoiceExcelTitle' | transloco }}</span>
+            <span class="add-choice-card__hint">{{ 'emplacement.addChoiceExcelHint' | transloco }}</span>
+          </span>
+          <i class="pi pi-arrow-right add-choice-card__arrow" aria-hidden="true"></i>
+        </button>
+        <button type="button" class="add-choice-card add-choice-card--manual" (click)="chooseManualAdd()">
+          <span class="add-choice-card__icon add-choice-card__icon--manual" aria-hidden="true">
+            <i class="pi pi-pencil"></i>
+          </span>
+          <span class="add-choice-card__content">
+            <span class="add-choice-card__title">{{ 'emplacement.addChoiceManualTitle' | transloco }}</span>
+            <span class="add-choice-card__hint">{{ 'emplacement.addChoiceManualHint' | transloco }}</span>
+          </span>
+          <i class="pi pi-arrow-right add-choice-card__arrow" aria-hidden="true"></i>
+        </button>
+      </div>
+    </div>
+  </p-dialog>
+
+  <p-dialog
+    [header]="'emplacement.excelImportDialogTitle' | transloco"
+    [modal]="true"
+    [visible]="showExcelImportDialog()"
+    (visibleChange)="showExcelImportDialog.set($event)"
+    [style]="{ width: 'min(860px, 94vw)' }"
+    styleClass="modern-dialog emplacement-dialog excel-import-dialog"
+    [draggable]="false">
+    <div class="dialog-stack excel-import-panel">
+      <p class="excel-import-lead m-0">
+        {{ 'emplacement.excelImportLeadBefore' | transloco }}
+        <strong>{{ 'emplacement.excelImportLeadBlocs' | transloco }}</strong>
+        {{ 'emplacement.excelImportLeadAnd' | transloco }}
+        <strong>{{ 'emplacement.excelImportLeadCm' | transloco }}</strong>
+        {{ 'emplacement.excelImportLeadAfter' | transloco }}
+      </p>
+      <ol class="excel-import-steps m-0 pl-3">
+        <li>{{ 'emplacement.excelImportStep1' | transloco }}</li>
+        <li>{{ 'emplacement.excelImportStep2' | transloco }}</li>
+        <li>{{ 'emplacement.excelImportStep3' | transloco }}</li>
+      </ol>
+      <div class="flex flex-wrap gap-2 mt-3">
+        <button
+          pButton
+          pRipple
+          type="button"
+          [label]="'emplacement.downloadTemplate' | transloco"
+          icon="pi pi-download"
+          class="p-button-outlined"
+          (click)="downloadEpiImportTemplate()"></button>
+        <button
+          pButton
+          pRipple
+          type="button"
+          [label]="'emplacement.importFile' | transloco"
+          icon="pi pi-upload"
+          class="modern-button emplacement-primary-btn"
+          [loading]="importBusy()"
+          [disabled]="importBusy()"
+          (click)="triggerEpiImport()"></button>
+      </div>
+    </div>
+    <ng-template pTemplate="footer">
+      <button
+        pButton
+        pRipple
+        [label]="'common.close' | transloco"
+        class="p-button-text emplacement-create-cancel"
+        [disabled]="importBusy()"
+        (click)="showExcelImportDialog.set(false)"></button>
+    </ng-template>
+  </p-dialog>
+
+  <p-dialog
+    [header]="'emplacement.resizeDialogTitle' | transloco"
+    [modal]="true"
+    [visible]="showResizeDialog()"
+    (visibleChange)="showResizeDialog.set($event)"
+    [style]="{ width: 'min(840px, 94vw)' }"
+    styleClass="modern-dialog emplacement-dialog"
+    [draggable]="false">
+    @if (resizeTarget(); as epi) {
+      <div class="dialog-stack">
+        <p class="resize-epi-lead m-0 mb-3">
+          {{ 'emplacement.resizeLeadBefore' | transloco }}
+          <strong>{{ epi.numero }}</strong>
+          {{ 'emplacement.resizeLeadAfter' | transloco: { travers: epi.traversCount, tablettes: epi.tabletteRows, blocs: epi.blocsPerTablette } }}
+        </p>
+        <div class="grid">
+          <div class="col-12 md:col-6">
+            <label class="field-label">{{ 'emplacement.labelTraversWithCurrent' | transloco: { current: epi.traversCount, max: maxDim } }}</label>
+            <input
+              pInputText
+              type="number"
+              class="w-full emplacement-field"
+              [(ngModel)]="resizeTravers"
+              [min]="epi.traversCount"
+              [max]="maxDim" />
+          </div>
+          <div class="col-12 md:col-6">
+            <label class="field-label">{{ 'emplacement.labelTablettesWithCurrent' | transloco: { current: epi.tabletteRows, max: maxDim } }}</label>
+            <input
+              pInputText
+              type="number"
+              class="w-full emplacement-field"
+              [(ngModel)]="resizeTabletteRows"
+              [min]="epi.tabletteRows"
+              [max]="maxDim" />
+          </div>
+          <div class="col-12 md:col-6">
+            <label class="field-label">{{ 'emplacement.labelBlocsWithCurrent' | transloco: { current: epi.blocsPerTablette, max: maxBlocsTablette } }}</label>
+            <input
+              pInputText
+              type="number"
+              class="w-full emplacement-field"
+              [(ngModel)]="resizeBlocsPerTablette"
+              [min]="epi.blocsPerTablette"
+              [max]="maxBlocsTablette" />
+          </div>
+          <div class="col-12 md:col-6">
+            <label class="field-label">{{ 'emplacement.labelBlocLinearCm' | transloco }}</label>
+            <input
+              pInputText
+              type="text"
+              class="w-full emplacement-field emplacement-readonly-numero"
+              [ngModel]="epi.blocLinearCm"
+              [readonly]="true"
+              tabindex="-1"
+              autocomplete="off"
+              aria-readonly="true"
+              inputmode="none" />
+          </div>
+        </div>
+      </div>
+    }
+    <ng-template pTemplate="footer">
+      <button
+        pButton
+        pRipple
+        [label]="'common.cancel' | transloco"
+        class="p-button-text emplacement-create-cancel"
+        [disabled]="resizeBusy()"
+        (click)="showResizeDialog.set(false)"></button>
+      <button
+        pButton
+        pRipple
+        [label]="'emplacement.resizeBtn' | transloco"
+        icon="pi pi-check"
+        class="modern-button emplacement-primary-btn"
+        [loading]="resizeBusy()"
+        [disabled]="resizeBusy()"
+        (click)="submitResize()"></button>
+    </ng-template>
+  </p-dialog>
+
+  <p-dialog
+    [modal]="true"
+    [visible]="showCreateDialog()"
+    (visibleChange)="showCreateDialog.set($event)"
+    [style]="{ width: 'min(96vw, 44rem)' }"
+    [contentStyle]="{ overflow: 'visible' }"
+    styleClass="modern-dialog regles-dialog regles-dialog--create epi-create-dialog"
+    appendTo="body"
+    [draggable]="false"
+    [closable]="true">
+    <ng-template pTemplate="header">
+      <div class="regles-create-head">
+        <div class="regles-create-head__brand">
+          <span class="regles-create-head__icon epi-create-head__icon" aria-hidden="true">
+            <i class="pi pi-th-large"></i>
+          </span>
+          <div class="regles-create-head__text">
+            <h2 class="regles-create-head__title">{{ 'emplacement.createDialogTitle' | transloco }}</h2>
+            <p class="regles-create-head__subtitle">
+              {{ 'emplacement.createDialogSubtitle' | transloco }}
+            </p>
+          </div>
+        </div>
+      </div>
+    </ng-template>
+
+    <div class="p-fluid regles-create-form">
+      <section class="regles-create-section" aria-labelledby="epi-create-num-heading">
+        <h3 id="epi-create-num-heading" class="regles-create-section__title">
+          <i class="pi pi-tag" aria-hidden="true"></i>
+          {{ 'emplacement.sectionIdentification' | transloco }}
+        </h3>
+        <div class="regles-create-section__body">
+          <div class="field regles-create-field regles-readonly-stack--locked">
+            <div class="regles-readonly-field-group">
+              <label for="epiNumeroPreview" class="regles-create-label">{{ 'emplacement.epiNumeroLabel' | transloco }}</label>
+              <div class="regles-readonly-control-shell regles-create-control regles-create-control--plain">
+                <input
+                  pInputText
+                  id="epiNumeroPreview"
+                  type="text"
+                  class="w-full regles-input regles-create-input regles-input-readonly"
+                  [ngModel]="nextNumeroPreview()"
+                  [readonly]="true"
+                  tabindex="-1"
+                  autocomplete="off"
+                  aria-readonly="true" />
+                <div class="regles-readonly-hover-curtain" aria-hidden="true">
+                  <i class="pi pi-ban regles-readonly-ban-icon"></i>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="regles-create-section" aria-labelledby="epi-create-dim-heading">
+        <h3 id="epi-create-dim-heading" class="regles-create-section__title">
+          <i class="pi pi-objects-column" aria-hidden="true"></i>
+          {{ 'emplacement.sectionDimensions' | transloco }}
+        </h3>
+        <div class="regles-create-section__body regles-create-section__body--grid">
+          <div class="field regles-create-field">
+            <label for="epiTravers" class="regles-create-label">{{ 'emplacement.labelTraversRequired' | transloco }} <span class="req">*</span></label>
+            <p-inputNumber
+              inputId="epiTravers"
+              [(ngModel)]="newTravers"
+              [min]="1"
+              [max]="maxDim"
+              [showButtons]="true"
+              styleClass="w-full regles-inputnumber regles-create-inputnumber"
+              [useGrouping]="false" />
+          </div>
+          <div class="field regles-create-field">
+            <label for="epiTablettes" class="regles-create-label">{{ 'emplacement.labelTablettesRequired' | transloco }} <span class="req">*</span></label>
+            <p-inputNumber
+              inputId="epiTablettes"
+              [(ngModel)]="newTabletteRows"
+              [min]="1"
+              [max]="maxDim"
+              [showButtons]="true"
+              styleClass="w-full regles-inputnumber regles-create-inputnumber"
+              [useGrouping]="false" />
+          </div>
+          <div class="field regles-create-field epi-create-field--default">
+            <label for="epiBlocs" class="regles-create-label">
+              {{ 'emplacement.labelBlocsPerTablette' | transloco }} <span class="req">*</span>
+              <span class="epi-create-max-hint">{{ 'emplacement.maxBlocsHint' | transloco: { max: maxBlocsTablette } }}</span>
+            </label>
+            <p-inputNumber
+              inputId="epiBlocs"
+              [(ngModel)]="newBlocsPerTablette"
+              [min]="1"
+              [max]="maxBlocsTablette"
+              [showButtons]="true"
+              styleClass="w-full regles-inputnumber regles-create-inputnumber"
+              [useGrouping]="false" />
+          </div>
+          <div class="field regles-create-field epi-create-field--default regles-readonly-stack--locked">
+            <div class="regles-readonly-field-group">
+              <label for="epiBlocCm" class="regles-create-label">{{ 'emplacement.labelBlocLinearCmReadonly' | transloco }}</label>
+              <div class="regles-readonly-control-shell regles-create-control regles-create-control--plain">
+                <input
+                  pInputText
+                  id="epiBlocCm"
+                  type="text"
+                  class="w-full regles-input regles-create-input regles-input-readonly"
+                  [ngModel]="defaultBlocCm"
+                  [readonly]="true"
+                  tabindex="-1"
+                  autocomplete="off"
+                  aria-readonly="true"
+                  inputmode="none" />
+                <div class="regles-readonly-hover-curtain" aria-hidden="true">
+                  <i class="pi pi-ban regles-readonly-ban-icon"></i>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <ng-template pTemplate="footer">
+      <div class="regles-create-footer">
+        <button
+          pButton
+          pRipple
+          type="button"
+          [label]="'common.cancel' | transloco"
+          class="regles-btn-cancel"
+          (click)="showCreateDialog.set(false)"></button>
+        <button
+          pButton
+          pRipple
+          type="button"
+          [label]="'emplacement.createSubmit' | transloco"
+          icon="pi pi-check"
+          class="regles-btn-save regles-btn-save--create"
+          (click)="submitCreate()"></button>
+      </div>
+    </ng-template>
+  </p-dialog>
+
+  <p-dialog
+    [modal]="true"
+    [visible]="showTabletteDialog()"
+    (visibleChange)="showTabletteDialog.set($event)"
+    [style]="{ width: 'min(1400px, 98vw)' }"
+    styleClass="modern-dialog emplacement-dialog tablette-detail-dialog"
+    [draggable]="false"
+    [closable]="false"
+    [dismissableMask]="true"
+    [closeOnEscape]="true"
+    (onHide)="closeTablette()">
+    <ng-template pTemplate="header">
+      <div class="tablette-detail-dialog__head">
+        <div class="tablette-detail-dialog__head-text">
+          <span class="tablette-detail-dialog__head-icon" aria-hidden="true">
+            <i class="pi pi-th-large"></i>
+          </span>
+          <div>
+            <span class="tablette-detail-dialog__head-title">{{ 'emplacement.tabletteDetailTitle' | transloco }}</span>
+            <span class="tablette-detail-dialog__head-sub">{{ 'emplacement.tabletteDetailSubtitle' | transloco }}</span>
+          </div>
+        </div>
+        <button
+          type="button"
+          class="tablette-detail-dialog__close"
+          (click)="closeTablette()"
+          pRipple
+          [attr.aria-label]="'common.close' | transloco">
+          <i class="pi pi-times" aria-hidden="true"></i>
+        </button>
+      </div>
+    </ng-template>
+    @if (selectedCell(); as cell) {
+      <div class="tablette-detail-dialog__body">
+        <div class="tablette-detail-summary">
+          <div class="tablette-detail-summary__primary">
+            <span class="tablette-detail-summary__label">{{ 'emplacement.labelTabletteNum' | transloco }}</span>
+            <span class="tablette-detail-summary__num">{{ cell.tabletteNumero }}</span>
+          </div>
+          <div class="tablette-detail-summary__metrics">
+            <div class="tablette-detail-metric">
+              <span class="tablette-detail-metric__label">{{ 'emplacement.labelOccupation' | transloco }}</span>
+              <span class="tablette-detail-metric__value">
+                <i class="pi pi-box" aria-hidden="true"></i>
+                {{ cell.occupiedCount }}<span class="tablette-detail-metric__sep">/</span>{{ cell.totalCount }}
+              </span>
+            </div>
+            <div class="tablette-detail-metric">
+              <span class="tablette-detail-metric__label">{{ 'emplacement.labelLinear' | transloco }}</span>
+              <span class="tablette-detail-metric__value">
+                <i class="pi pi-arrows-h" aria-hidden="true"></i>
+                {{ tabletteLinearCm(cell) }}&nbsp;{{ 'emplacement.cmUnit' | transloco }}
+              </span>
+            </div>
+          </div>
+          <div class="tablette-detail-summary__legend" [attr.aria-label]="'emplacement.legendTitle' | transloco">
+            <span class="tablette-detail-legend__title">{{ 'emplacement.legendTitle' | transloco }}</span>
+            <span class="td-legend-badge td-legend-badge--group">
+              <span class="td-legend-swatch td-legend-swatch--group" aria-hidden="true"></span>
+              {{ 'emplacement.legendNonFragmented' | transloco }}
+            </span>
+            <span class="td-legend-badge td-legend-badge--dispers">
+              <span class="td-legend-swatch td-legend-swatch--dispers" aria-hidden="true"></span>
+              {{ 'emplacement.legendFragmented' | transloco }}
+            </span>
+          </div>
+        </div>
+        <div class="tablette-detail-strip-wrap">
+        <div class="bloc-strip bloc-strip--tablette" role="list" [attr.aria-label]="'emplacement.blocsListAria' | transloco">
+          @for (seg of blocStripSegments(cell.blocs); track seg.kind === 'empty' ? seg.bloc.id : seg.blocs[0].id) {
+            @if (seg.kind === 'empty') {
+              <div class="bloc-card bloc-card--empty" role="listitem" [attr.aria-label]="blocFreeAriaLabel(seg.bloc.numero)">
+                <header class="bloc-card__cap bloc-card__cap--empty">
+                  <span class="bloc-card__num">{{ seg.bloc.numero }}</span>
+                </header>
+                <div class="bloc-card__body-slot">
+                  <span class="bloc-card__badge bloc-card__badge--libre">
+                    <i class="pi pi-inbox" aria-hidden="true"></i>
+                    {{ 'emplacement.freeBadge' | transloco }}
+                  </span>
+                  @if (currentEpi(); as epi) {
+                    <span class="bloc-card__meta">{{ 'emplacement.cmAvailable' | transloco: { cm: epi.blocLinearCm } }}</span>
+                  }
+                </div>
+              </div>
+            } @else if (seg.fused) {
+              <button
+                type="button"
+                class="bloc-card bloc-card--occupied bloc-fused"
+                [class.bloc-card--bordereau-dispers]="seg.blocs[0].boite && shouldShowDispersBlocStyle(seg.blocs[0].boite!, cell)"
+                [class.bloc-fused--count-2]="seg.blocs.length === 2"
+                [class.bloc-fused--count-3]="seg.blocs.length === 3"
+                [class.bloc-fused--count-4]="seg.blocs.length >= 4"
+                role="listitem"
+                (click)="openBoiteDetail(seg.blocs[0])"
+                [attr.aria-label]="fusedBlocsAriaLabel(seg.blocs)">
+                <header class="bloc-card__cap">
+                  <span class="bloc-card__num bloc-fused__nums">{{ fusedBlocsNumeros(seg.blocs) }}</span>
+                </header>
+                <div class="bloc-card__body-slot">
+                  @if (seg.blocs[0].boite; as boite) {
+                    @if (hasBordereauNumero(boite)) {
+                      <span class="bloc-card__bordereau">{{ bordereauNumeroDisplay(boite) }}</span>
+                    }
+                    <span class="bloc-card__box-title" [title]="boite.titre">{{ boite.titre }}</span>
+                    <span
+                      class="bloc-card__badge"
+                      [class.bloc-card__badge--dispers]="shouldShowDispersBlocStyle(boite, cell)">
+                      {{ occupiedStateLabel(boite, seg.blocs.length, cell) }}
+                    </span>
+                  } @else {
+                    <span class="bloc-card__badge">{{ 'emplacement.stateOccupied' | transloco }}</span>
+                  }
+                </div>
+                <span class="bloc-card__footer">
+                  <i class="pi pi-eye" aria-hidden="true"></i>
+                  {{ 'emplacement.viewDetail' | transloco }}
+                </span>
+              </button>
+            } @else {
+              <button
+                type="button"
+                class="bloc-card bloc-card--occupied"
+                [class.bloc-card--bordereau-dispers]="seg.blocs[0].boite && shouldShowDispersBlocStyle(seg.blocs[0].boite!, cell)"
+                role="listitem"
+                (click)="openBoiteDetail(seg.blocs[0])"
+                [attr.aria-label]="occupiedBlocAriaLabel(seg.blocs[0].numero)">
+                <header class="bloc-card__cap">
+                  <span class="bloc-card__num">{{ seg.blocs[0].numero }}</span>
+                </header>
+                <div class="bloc-card__body-slot">
+                  @if (seg.blocs[0].boite; as boite) {
+                    @if (hasBordereauNumero(boite)) {
+                      <span class="bloc-card__bordereau">{{ bordereauNumeroDisplay(boite) }}</span>
+                    }
+                    <span class="bloc-card__box-title" [title]="boite.titre">{{ boite.titre }}</span>
+                    <span
+                      class="bloc-card__badge"
+                      [class.bloc-card__badge--dispers]="shouldShowDispersBlocStyle(boite, cell)">
+                      {{ occupiedStateLabel(boite, undefined, cell) }}
+                    </span>
+                  } @else {
+                    <span class="bloc-card__badge">{{ 'emplacement.stateOccupied' | transloco }}</span>
+                  }
+                </div>
+                <span class="bloc-card__footer">
+                  <i class="pi pi-eye" aria-hidden="true"></i>
+                  {{ 'emplacement.viewDetail' | transloco }}
+                </span>
+              </button>
+            }
+          }
+        </div>
+        </div>
+      </div>
+    }
+  </p-dialog>
+
+  <p-dialog
+    [header]="'emplacement.boiteDetailTitle' | transloco"
+    [modal]="true"
+    [visible]="showBoiteDetailDialog()"
+    (visibleChange)="onBoiteDetailVisibleChange($event)"
+    [style]="{ width: 'min(720px, 94vw)' }"
+    styleClass="modern-dialog emplacement-dialog boite-detail-dialog"
+    [baseZIndex]="16000"
+    [draggable]="false"
+    [dismissableMask]="true"
+    [closeOnEscape]="true"
+    (onHide)="closeBoiteDetail()">
+    @if (selectedBloc(); as bloc) {
+      @if (bloc.boite; as boite) {
+        <div class="boite-detail">
+          <div class="boite-detail-hero">
+            <div class="boite-detail-hero__icon" aria-hidden="true">
+              <i class="pi pi-box"></i>
+            </div>
+            <div class="boite-detail-hero__body">
+              <p class="boite-detail-hero__eyebrow">{{ 'emplacement.archiveBoxEyebrow' | transloco }}</p>
+              <h3 class="boite-detail-hero__title">{{ boite.titre }}</h3>
+              <div class="boite-detail-hero__chips">
+                <span class="boite-detail-chip boite-detail-chip--primary">
+                  <i class="pi pi-file" aria-hidden="true"></i>
+                  {{ bordereauNumeroDisplay(boite) }}
+                </span>
+                @if (boite.documentTypeTitle) {
+                  <span class="boite-detail-chip">
+                    <i class="pi pi-tag" aria-hidden="true"></i>
+                    {{ boite.documentTypeTitle }}
+                  </span>
+                }
+                <span class="boite-detail-chip">
+                  <i class="pi pi-calendar" aria-hidden="true"></i>
+                  {{ boite.anneeMin }} – {{ boite.anneeMax }}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          @if (blocsForBoiteDetail(); as detailBlocs) {
+            <div class="boite-detail-meta">
+              <i class="pi pi-map-marker" aria-hidden="true"></i>
+              @if (detailBlocs.length > 1) {
+                <span>
+                  {{ 'emplacement.blocsLabel' | transloco }}
+                  <strong>{{ fusedBlocsRangeLabel(detailBlocs) }}</strong>
+                  <span class="boite-detail-meta__hint">{{ 'emplacement.locationsCount' | transloco: { count: detailBlocs.length } }}</span>
+                </span>
+              } @else {
+                <span>{{ 'emplacement.blocLabel' | transloco }} <strong>{{ bloc.numero }}</strong></span>
+              }
+            </div>
+          }
+
+          @if (bordereauStatsLoading()) {
+            <p class="boite-detail-summary boite-detail-summary--loading">{{ 'emplacement.loadingBordereau' | transloco }}</p>
+          } @else if (bordereauDetailStats(); as stats) {
+            <p class="boite-detail-summary">
+              {{ 'emplacement.bordereauSummaryBefore' | transloco }}
+              <strong>{{ stats.numero }}</strong> ·
+              <strong>{{ stats.total }}</strong>
+              @if (stats.total === 1) {
+                {{ 'emplacement.bordereauBoxOne' | transloco }}
+              } @else {
+                {{ 'emplacement.bordereauBoxMany' | transloco }}
+              }
+              {{ 'emplacement.onThisBordereau' | transloco }}
+            </p>
+            @if (isBordereauBoitesNonContigues(boite)) {
+              <p class="boite-detail__banner boite-detail__banner--dispers">
+                <i class="pi pi-sitemap" aria-hidden="true"></i>
+                {{ bordereauNonContiguesDetailLabel(boite) }}
+              </p>
+            } @else if (isBoiteNonRegroupeeInDetail(boite)) {
+              <p class="boite-detail__banner boite-detail__banner--dispers">
+                <i class="pi pi-th-large" aria-hidden="true"></i>
+                {{ boiteNonRegroupeeDetailLabel(boite) }}
+              </p>
+            }
+          }
+
+          <div class="boite-detail-fields">
+            <article class="boite-detail-field boite-detail-field--bordereau">
+              <span class="boite-detail-field__label">{{ 'emplacement.labelBordereauNum' | transloco }}</span>
+              <p class="boite-detail-bordereau-num">{{ bordereauNumeroDisplay(boite) }}</p>
+            </article>
+            <article class="boite-detail-field">
+              <span class="boite-detail-field__label">{{ 'emplacement.labelTitle' | transloco }}</span>
+              <span class="boite-detail-field__value">{{ boite.titre }}</span>
+            </article>
+            @if (boite.documentTypeTitle) {
+              <article class="boite-detail-field">
+                <span class="boite-detail-field__label">{{ 'emplacement.labelDocType' | transloco }}</span>
+                <span class="boite-detail-field__value">{{ boite.documentTypeTitle }}</span>
+              </article>
+            }
+            <article class="boite-detail-field">
+              <span class="boite-detail-field__label">{{ 'emplacement.labelYearMin' | transloco }}</span>
+              <span class="boite-detail-field__value boite-detail-field__value--year">{{ boite.anneeMin }}</span>
+            </article>
+            <article class="boite-detail-field">
+              <span class="boite-detail-field__label">{{ 'emplacement.labelYearMax' | transloco }}</span>
+              <span class="boite-detail-field__value boite-detail-field__value--year">{{ boite.anneeMax }}</span>
+            </article>
+            <article class="boite-detail-field boite-detail-field--keywords">
+              <span class="boite-detail-field__label">{{ 'emplacement.labelKeywords' | transloco }}</span>
+              @if (motsClesTags(boite.motsCles).length > 0) {
+                <ul class="boite-detail-keywords">
+                  @for (tag of motsClesTags(boite.motsCles); track tag) {
+                    <li>{{ tag }}</li>
+                  }
+                </ul>
+              } @else {
+                <span class="boite-detail-field__empty">{{ 'emplacement.noKeywords' | transloco }}</span>
+              }
+            </article>
+          </div>
+        </div>
+      }
+    }
+    <ng-template pTemplate="footer">
+      <button
+        pButton
+        pRipple
+        type="button"
+        [label]="'common.close' | transloco"
+        class="boite-detail-close-btn"
+        (click)="closeBoiteDetail()"></button>
+    </ng-template>
+  </p-dialog>
+
+</div>

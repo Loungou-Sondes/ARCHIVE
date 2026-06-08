@@ -1,0 +1,202 @@
+<p-toast position="top-center" styleClass="login-toast" [baseZIndex]="20000" />
+<div class="animation-area login-page-scroll flex flex-column align-items-center min-w-screen">
+  <ul class="box-area">
+    <li></li>
+    <li></li>
+    <li></li>
+    <li></li>
+    <li></li>
+    <li></li>
+    <li></li>
+    <li></li>
+  </ul>
+
+  <app-lang-select variant="login" />
+
+  <div class="grid justify-content-center login-content-grid p-3 lg:p-0">
+    <div class="scalein animation-duration-500 col-12 mt-5 xl:mt-0 text-center">
+      <img src="assets/images/Logo.png" alt="Office de la Marine Marchande et des Ports" class="logo-img">
+    </div>
+
+    <div class="fadein animation-duration-200 col-12 login-panel-col login-panel-shell">
+      <div class="login-card">
+        <div class="text-center mb-4">
+          <div class="welcome-title">
+            <span class="office-name">{{ 'login.officeName' | transloco }}</span>
+            <span class="welcome-message" *ngIf="loginMode === 'signin'">{{ 'login.welcome' | transloco }}</span>
+            <span class="welcome-message" *ngIf="loginMode === 'setPassword'">{{ 'login.setNewPasswordTitle' | transloco }}</span>
+          </div>
+          <span class="welcome-subtitle" *ngIf="loginMode === 'signin'">{{ 'login.subtitle' | transloco }}</span>
+          <span class="welcome-subtitle" *ngIf="loginMode === 'setPassword'">{{ 'login.setNewPasswordSubtitle' | transloco }}</span>
+        </div>
+
+        <div class="w-full mx-auto login-form-inner" *ngIf="loginMode === 'signin'">
+          <div class="field-wrapper">
+            <label for="username" class="field-label">
+              <i class="pi pi-user mr-2"></i>
+              {{ 'login.username' | transloco }}
+            </label>
+            <div class="p-inputgroup custom-input-group">
+              <span class="p-inputgroup-addon"><i class="pi pi-user"></i></span>
+              <input id="username" [(ngModel)]="username" (ngModelChange)="onUsernameChange()" (keyup.enter)="onSubmit()" type="text"
+                [placeholder]="'login.usernamePlaceholder' | transloco" pInputText class="custom-input" autocomplete="username">
+            </div>
+          </div>
+
+          <div class="field-wrapper">
+            <label for="password" class="field-label">
+              <i class="pi pi-key mr-2"></i>
+              {{ 'login.password' | transloco }}
+            </label>
+            <div class="p-inputgroup custom-input-group password-input-group">
+              <span class="p-inputgroup-addon"><i class="pi pi-key"></i></span>
+              <input
+                id="password"
+                [type]="passwordVisible ? 'text' : 'password'"
+                [(ngModel)]="password"
+                (keyup.enter)="onSubmit()"
+                [placeholder]="'login.passwordPlaceholder' | transloco"
+                pInputText
+                class="custom-input password-field-input"
+                autocomplete="current-password" />
+              <button
+                type="button"
+                class="password-toggle-btn"
+                (click)="togglePasswordVisibility()"
+                [attr.aria-label]="passwordVisible ? ('login.hidePassword' | transloco) : ('login.showPassword' | transloco)"
+                [attr.aria-pressed]="passwordVisible">
+                <i [class]="passwordVisible ? 'pi pi-eye' : 'pi pi-eye-slash'" aria-hidden="true"></i>
+              </button>
+            </div>
+          </div>
+
+          <div
+            *ngIf="passwordResetApprovedVisible && username.trim()"
+            class="login-reset-approved-banner mb-3">
+            <div class="login-reset-approved-banner__text">
+              <i class="pi pi-check-circle" aria-hidden="true"></i>
+              <span>{{ 'login.setNewPasswordBanner' | transloco }}</span>
+            </div>
+            <button
+              pButton
+              pRipple
+              type="button"
+              class="login-reset-approved-banner__btn p-button-sm"
+              [label]="'login.setNewPasswordLink' | transloco"
+              icon="pi pi-lock"
+              (click)="showSetPasswordForm()"></button>
+          </div>
+
+          <div class="login-links-row mb-4">
+            <a class="forgot-password-link" (click)="resetPassword()">
+              <i class="pi pi-question-circle mr-1"></i>
+              {{ 'login.forgotPassword' | transloco }}
+            </a>
+          </div>
+
+          <button
+            pButton
+            pRipple
+            [label]="'login.submit' | transloco"
+            (click)="onSubmit()"
+            icon="pi pi-sign-in"
+            iconPos="right"
+            class="login-button"
+            [disabled]="submitting">
+          </button>
+        </div>
+
+        <div class="w-full mx-auto login-form-inner" *ngIf="loginMode === 'setPassword'">
+          <div class="field-wrapper">
+            <label for="set-password-username" class="field-label">
+              <i class="pi pi-user mr-2"></i>
+              {{ 'login.username' | transloco }}
+            </label>
+            <div class="p-inputgroup custom-input-group">
+              <span class="p-inputgroup-addon"><i class="pi pi-user"></i></span>
+              <input
+                id="set-password-username"
+                [(ngModel)]="username"
+                type="text"
+                [placeholder]="'login.usernamePlaceholder' | transloco"
+                pInputText
+                class="custom-input" />
+            </div>
+          </div>
+
+          <div class="field-wrapper">
+            <label for="new-password" class="field-label">
+              <i class="pi pi-key mr-2"></i>
+              {{ 'login.newPassword' | transloco }}
+            </label>
+            <div class="p-inputgroup custom-input-group password-input-group">
+              <span class="p-inputgroup-addon"><i class="pi pi-key"></i></span>
+              <input
+                id="new-password"
+                [type]="newPasswordVisible ? 'text' : 'password'"
+                [(ngModel)]="newPassword"
+                (keyup.enter)="completePasswordReset()"
+                [placeholder]="'login.newPasswordPlaceholder' | transloco"
+                pInputText
+                class="custom-input password-field-input"
+                autocomplete="new-password" />
+              <button
+                type="button"
+                class="password-toggle-btn"
+                (click)="toggleNewPasswordVisibility()"
+                [attr.aria-label]="newPasswordVisible ? ('login.hidePassword' | transloco) : ('login.showPassword' | transloco)"
+                [attr.aria-pressed]="newPasswordVisible">
+                <i [class]="newPasswordVisible ? 'pi pi-eye' : 'pi pi-eye-slash'" aria-hidden="true"></i>
+              </button>
+            </div>
+          </div>
+
+          <div class="field-wrapper">
+            <label for="confirm-new-password" class="field-label">
+              <i class="pi pi-shield mr-2"></i>
+              {{ 'login.confirmNewPassword' | transloco }}
+            </label>
+            <div class="p-inputgroup custom-input-group password-input-group">
+              <span class="p-inputgroup-addon"><i class="pi pi-shield"></i></span>
+              <input
+                id="confirm-new-password"
+                [type]="confirmNewPasswordVisible ? 'text' : 'password'"
+                [(ngModel)]="confirmNewPassword"
+                (keyup.enter)="completePasswordReset()"
+                [placeholder]="'login.confirmNewPasswordPlaceholder' | transloco"
+                pInputText
+                class="custom-input password-field-input"
+                autocomplete="new-password" />
+              <button
+                type="button"
+                class="password-toggle-btn"
+                (click)="toggleConfirmNewPasswordVisibility()"
+                [attr.aria-label]="confirmNewPasswordVisible ? ('login.hidePassword' | transloco) : ('login.showPassword' | transloco)"
+                [attr.aria-pressed]="confirmNewPasswordVisible">
+                <i [class]="confirmNewPasswordVisible ? 'pi pi-eye' : 'pi pi-eye-slash'" aria-hidden="true"></i>
+              </button>
+            </div>
+          </div>
+
+          <div class="login-links-row mb-4">
+            <a class="forgot-password-link" (click)="showSignInForm()">
+              <i class="pi pi-arrow-left mr-1"></i>
+              {{ 'login.backToLogin' | transloco }}
+            </a>
+          </div>
+
+          <button
+            pButton
+            pRipple
+            [label]="'login.setNewPasswordSubmit' | transloco"
+            (click)="completePasswordReset()"
+            icon="pi pi-check"
+            iconPos="right"
+            class="login-button"
+            [disabled]="settingPassword">
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

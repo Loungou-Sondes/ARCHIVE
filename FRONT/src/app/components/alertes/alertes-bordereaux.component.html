@@ -1,0 +1,374 @@
+<div class="alertes-centre-host">
+
+  <p-toast position="top-center" />
+
+  <div class="alertes-centre-page">
+
+    <header class="alertes-centre-hero card modern-card">
+
+      <div class="alertes-centre-hero__main">
+
+        <div class="alertes-centre-hero__icon" aria-hidden="true">
+
+          <i class="pi pi-bell"></i>
+
+        </div>
+
+        <div>
+
+          <h2 class="alertes-centre-hero__title m-0">{{ 'alertes.centreTitle' | transloco }}</h2>
+
+          <p class="alertes-centre-hero__subtitle m-0">{{ 'alertes.centreSubtitle' | transloco }}</p>
+
+        </div>
+
+      </div>
+
+      <button
+
+        pButton
+
+        pRipple
+
+        type="button"
+
+        icon="pi pi-refresh"
+
+        class="p-button-rounded p-button-text alertes-centre-hero__refresh"
+
+        [pTooltip]="'alertes.refreshAll' | transloco"
+
+        tooltipPosition="bottom"
+
+        (click)="refreshAll()"></button>
+
+    </header>
+
+
+
+    @if (auth.isAdmin()) {
+
+      <section class="alertes-group" aria-labelledby="alertes-group-conservation">
+
+        <header class="alertes-group__header" id="alertes-group-conservation">
+
+          <div class="alertes-group__header-main">
+
+            <span class="alertes-group__icon alertes-group__icon--purple" aria-hidden="true">
+
+              <i class="fa-solid fa-box-archive"></i>
+
+            </span>
+
+            <div>
+
+              <h3 class="alertes-group__title m-0">{{ 'alertes.sectionGroupConservation' | transloco }}</h3>
+
+              <p class="alertes-group__subtitle m-0">{{ 'alertes.sectionGroupConservationSubtitle' | transloco }}</p>
+
+            </div>
+
+          </div>
+
+          @if (boxAlertCount() > 0) {
+
+            <span class="alertes-group__badge alertes-group__badge--purple">
+
+              @if (boxAlertCount() === 1) {
+
+                {{ 'alertes.badgeAlertOne' | transloco: { count: boxAlertCount() } }}
+
+              } @else {
+
+                {{ 'alertes.badgeAlertMany' | transloco: { count: boxAlertCount() } }}
+
+              }
+
+            </span>
+
+          } @else {
+
+            <span class="alertes-group__badge alertes-group__badge--muted">{{ 'alertes.groupBadgeNone' | transloco }}</span>
+
+          }
+
+        </header>
+
+        <div class="alertes-group__items">
+
+          <section class="alertes-section card modern-card alertes-section--dialog-host alertes-section--nested">
+
+            <div class="alertes-section__head">
+
+              <div class="alertes-section__title-wrap">
+
+                <span class="alertes-section__icon alertes-section__icon--purple" aria-hidden="true">
+
+                  <i class="fa-solid fa-box"></i>
+
+                </span>
+
+                <div>
+
+                  <h4 class="alertes-section__title m-0">{{ 'alertes.sectionBoxes' | transloco }}</h4>
+
+                  @if (boxAlertCount() > 0) {
+
+                    <span class="alertes-section__badge alertes-section__badge--purple">
+
+                      @if (boxAlertCount() === 1) {
+
+                        {{ 'alertes.badgeAlertOne' | transloco: { count: boxAlertCount() } }}
+
+                      } @else {
+
+                        {{ 'alertes.badgeAlertMany' | transloco: { count: boxAlertCount() } }}
+
+                      }
+
+                    </span>
+
+                  }
+
+                </div>
+
+              </div>
+
+            </div>
+
+            <app-alertes-archives-boites
+
+              #archivesBoites
+
+              [adminOnly]="true"
+
+              (totalChange)="boxAlertCount.set($event)" />
+
+          </section>
+
+        </div>
+
+      </section>
+
+
+
+      <section class="alertes-group" aria-labelledby="alertes-group-emplacements">
+
+        <header class="alertes-group__header" id="alertes-group-emplacements">
+
+          <div class="alertes-group__header-main">
+
+            <span class="alertes-group__icon alertes-group__icon--orange" aria-hidden="true">
+
+              <i class="fa-solid fa-warehouse"></i>
+
+            </span>
+
+            <div>
+
+              <h3 class="alertes-group__title m-0">{{ 'alertes.sectionGroupEmplacements' | transloco }}</h3>
+
+              <p class="alertes-group__subtitle m-0">{{ 'alertes.sectionGroupEmplacementsSubtitle' | transloco }}</p>
+
+            </div>
+
+          </div>
+
+          @if (lignesAlertCount() > 0) {
+
+            <span class="alertes-group__badge alertes-group__badge--orange">
+
+              @if (lignesAlertCount() === 1) {
+
+                {{ 'alertes.badgeLigneOne' | transloco: { count: lignesAlertCount() } }}
+
+              } @else {
+
+                {{ 'alertes.badgeLigneMany' | transloco: { count: lignesAlertCount() } }}
+
+              }
+
+            </span>
+
+          } @else {
+
+            <span class="alertes-group__badge alertes-group__badge--muted">{{ 'alertes.capacityOk' | transloco }}</span>
+
+          }
+
+        </header>
+
+        <div class="alertes-group__items">
+
+          <section class="alertes-section card modern-card alertes-section--dialog-host alertes-section--nested">
+
+            <div class="alertes-section__head">
+
+              <div class="alertes-section__title-wrap">
+
+                <span class="alertes-section__icon alertes-section__icon--orange" aria-hidden="true">
+
+                  <i class="fa-solid fa-chart-bar"></i>
+
+                </span>
+
+                <div>
+
+                  <h4 class="alertes-section__title m-0">{{ 'alertes.sectionLignes' | transloco }}</h4>
+
+                  @if (lignesAlertCount() > 0) {
+
+                    <span class="alertes-section__badge alertes-section__badge--orange">
+
+                      @if (lignesAlertCount() === 1) {
+
+                        {{ 'alertes.badgeLigneOne' | transloco: { count: lignesAlertCount() } }}
+
+                      } @else {
+
+                        {{ 'alertes.badgeLigneMany' | transloco: { count: lignesAlertCount() } }}
+
+                      }
+
+                    </span>
+
+                  } @else {
+
+                    <span class="alertes-section__badge alertes-section__badge--muted">{{ 'alertes.capacityOk' | transloco }}</span>
+
+                  }
+
+                </div>
+
+              </div>
+
+            </div>
+
+            <app-alertes-lignes-pleines #lignesPleines (totalChange)="lignesAlertCount.set($event)" />
+
+          </section>
+
+        </div>
+
+      </section>
+
+
+
+      <section class="alertes-group" aria-labelledby="alertes-group-bordereaux">
+
+        <header class="alertes-group__header" id="alertes-group-bordereaux">
+
+          <div class="alertes-group__header-main">
+
+            <span class="alertes-group__icon alertes-group__icon--indigo" aria-hidden="true">
+
+              <i class="pi pi-file-edit"></i>
+
+            </span>
+
+            <div>
+
+              <h3 class="alertes-group__title m-0">{{ 'alertes.sectionGroupBordereaux' | transloco }}</h3>
+
+              <p class="alertes-group__subtitle m-0">{{ 'alertes.sectionGroupBordereauxSubtitle' | transloco }}</p>
+
+            </div>
+
+          </div>
+
+          @if (pendingBordereauxCount() > 0) {
+
+            <span class="alertes-group__badge alertes-group__badge--indigo">
+
+              @if (pendingBordereauxCount() === 1) {
+
+                {{ 'alertes.pendingCountOne' | transloco }}
+
+              } @else {
+
+                {{ 'alertes.pendingCountMany' | transloco: { count: pendingBordereauxCount() } }}
+
+              }
+
+            </span>
+
+          } @else {
+
+            <span class="alertes-group__badge alertes-group__badge--muted">{{ 'alertes.groupBadgeNone' | transloco }}</span>
+
+          }
+
+        </header>
+
+        <div class="alertes-group__items">
+
+          <app-alertes-bordereaux-en-attente #enAttente />
+
+        </div>
+
+      </section>
+
+
+
+      <section class="alertes-group alertes-group--agents" aria-labelledby="alertes-group-agents">
+
+        <header class="alertes-group__header" id="alertes-group-agents">
+
+          <div class="alertes-group__header-main">
+
+            <span class="alertes-group__icon alertes-group__icon--agents" aria-hidden="true">
+
+              <i class="fa-solid fa-users"></i>
+
+            </span>
+
+            <div>
+
+              <h3 class="alertes-group__title m-0">{{ 'alertes.sectionAgentsAdmin' | transloco }}</h3>
+
+              <p class="alertes-group__subtitle m-0">{{ 'alertes.sectionAgentsAdminSubtitle' | transloco }}</p>
+
+            </div>
+
+          </div>
+
+          @if (agentActionsCount() > 0) {
+
+            <span class="alertes-group__badge alertes-group__badge--agents">
+
+              @if (agentActionsCount() === 1) {
+
+                {{ 'alertes.sectionAgentsAdminBadgeOne' | transloco: { count: agentActionsCount() } }}
+
+              } @else {
+
+                {{ 'alertes.sectionAgentsAdminBadgeMany' | transloco: { count: agentActionsCount() } }}
+
+              }
+
+            </span>
+
+          } @else {
+
+            <span class="alertes-group__badge alertes-group__badge--muted">{{ 'alertes.sectionAgentsAdminBadgeZero' | transloco }}</span>
+
+          }
+
+        </header>
+
+        <div class="alertes-group__items">
+
+          <app-alertes-validation-agents #validationAgents />
+
+          <app-alertes-password-reset #passwordReset />
+
+        </div>
+
+      </section>
+
+    }
+
+  </div>
+
+</div>
+

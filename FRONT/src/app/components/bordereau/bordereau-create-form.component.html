@@ -1,0 +1,806 @@
+<div class="bordereau-create-host">
+  <div class="bordereau-create-inner">
+    <section class="card modern-card intro-card bn-intro-card mb-3">
+      <div class="flex align-items-start gap-3 flex-wrap">
+        <div class="header-icon-container header-icon-container--muted bn-intro-card__icon">
+          <i class="pi pi-file-edit" aria-hidden="true"></i>
+        </div>
+        <div>
+          @if (isResume()) {
+            <h2 class="intro-title m-0">{{ 'bordereau.resumeTitle' | transloco }}</h2>
+            @if (agentWorkflow()) {
+              <p class="intro-sub m-0 mt-2" [innerHTML]="'bordereau.resumeIntroAgent' | transloco"></p>
+            } @else {
+              <p class="intro-sub m-0 mt-2" [innerHTML]="'bordereau.resumeIntroAdmin' | transloco"></p>
+            }
+          } @else if (mettreEnAttente()) {
+            <h2 class="intro-title m-0">{{ 'bordereau.newAlertTitle' | transloco }}</h2>
+            <p class="intro-sub m-0 mt-2" [innerHTML]="'bordereau.newAlertIntro' | transloco"></p>
+          } @else if (agentWorkflow()) {
+            <h2 class="intro-title m-0">{{ 'bordereau.createTitle' | transloco }}</h2>
+            <p class="intro-sub m-0 mt-2" [innerHTML]="'bordereau.createIntroAgent' | transloco"></p>
+          } @else {
+            <h2 class="intro-title m-0">{{ 'bordereau.createTitle' | transloco }}</h2>
+            <p class="intro-sub m-0 mt-2">{{ 'bordereau.createIntroDefault' | transloco }}</p>
+          }
+        </div>
+      </div>
+    </section>
+
+    @if (resumeLoading()) {
+      <div class="card modern-card state-card mb-3">
+        <p class="m-0 text-center text-600">
+          <i class="pi pi-spinner pi-spin mr-2" aria-hidden="true"></i>{{ 'bordereau.loadingResume' | transloco }}
+        </p>
+      </div>
+    }
+
+    @if (!resumeLoading() && hasRegleSemiActiveUnknown() && !hasRegleActiveUnknownPending()) {
+      <div class="card modern-card state-card mb-3 bn-regle-info-banner" role="status">
+        <div class="flex align-items-start gap-2">
+          <i class="pi pi-info-circle text-primary mt-1" aria-hidden="true"></i>
+          <div>
+            <p class="m-0 font-medium">{{ 'bordereau.semiActiveUnknownTitle' | transloco }}</p>
+            <p class="m-0 mt-2 text-600 text-sm">
+              {{ 'bordereau.semiActiveUnknownHint' | transloco }}
+              @if (reglesSemiActifEnAlerteResume()) {
+                {{ 'bordereau.rulesLabel' | transloco }} <strong>{{ reglesSemiActifEnAlerteResume() }}</strong>.
+              }
+            </p>
+          </div>
+        </div>
+      </div>
+    }
+
+    <section class="card modern-card form-section bn-form-section mb-3" [class.bn-section--loading]="resumeLoading()">
+      <h3 class="bn-section-heading m-0 mb-3">
+        <i class="pi pi-id-card" aria-hidden="true"></i>
+        {{ 'bordereau.slipInfoSection' | transloco }}
+      </h3>
+      <div class="grid">
+        <div class="col-12 md:col-6 field field--numero-bordereau regles-readonly-stack--locked">
+          <div class="regles-readonly-field-group">
+            <label for="num-prev">{{ numeroFieldLabel() }}</label>
+            @if (isResume()) {
+              <div id="num-prev" class="bn-numero-pending-wrap">
+                <app-bordereau-pending-badge />
+              </div>
+            } @else {
+              <div class="regles-readonly-control-shell">
+                <input
+                  type="text"
+                  id="num-prev"
+                  readonly
+                  class="w-full bn-input bn-input-readonly p-inputtext p-component"
+                  [value]="numeroReadonlyDisplay()"
+                  aria-readonly="true" />
+                <div class="regles-readonly-hover-curtain" aria-hidden="true">
+                  <i class="pi pi-ban regles-readonly-ban-icon"></i>
+                </div>
+              </div>
+            }
+          </div>
+          @if (!isResume() && (agentWorkflow() || mettreEnAttente())) {
+            <small class="text-600 block mt-1">
+              {{ 'bordereau.numeroAssignedHint' | transloco: { numero: numeroReadonlyDisplay() } }}
+            </small>
+          }
+        </div>
+        <div class="col-12 md:col-6 field">
+          <label for="dir">{{ 'bordereau.colDirection' | transloco }}</label>
+          @if (directionLocked()) {
+            <input
+              type="text"
+              id="dir"
+              readonly
+              class="w-full bn-input bn-input-readonly p-inputtext p-component"
+              [value]="directionReadonlyLabel()"
+              aria-readonly="true" />
+          } @else {
+            <p-select
+              inputId="dir"
+              [options]="directionOptions()"
+              [(ngModel)]="directionId"
+              [placeholder]="'bordereau.directionPlaceholder' | transloco"
+              optionLabel="label"
+              optionValue="id"
+              [showClear]="true"
+              [filter]="true"
+              [filterPlaceholder]="'bordereau.directionFilterPlaceholder' | transloco"
+              filterBy="label"
+              appendTo="body"
+              scrollHeight="280px"
+              panelStyleClass="doc-types-select-panel doc-types-dialog-select-panel"
+              styleClass="w-full bn-select"></p-select>
+          }
+        </div>
+        <div class="col-12 md:col-6 field">
+          <label for="dt">{{ 'bordereau.transferDateLabel' | transloco }} <span class="req">*</span></label>
+          <p-datepicker
+            inputId="dt"
+            [(ngModel)]="dateTransfert"
+            (ngModelChange)="onDateTransfertChange()"
+            dateFormat="dd/mm/yy"
+            [showIcon]="true"
+            appendTo="body"
+            styleClass="w-full bn-datepicker"></p-datepicker>
+        </div>
+        <div class="col-12 field">
+          <label for="obs">{{ 'bordereau.observation' | transloco }}</label>
+          <textarea
+            pTextarea
+            id="obs"
+            [(ngModel)]="observation"
+            rows="3"
+            class="w-full bn-textarea"
+            [placeholder]="'bordereau.observationPlaceholder' | transloco"></textarea>
+        </div>
+      </div>
+    </section>
+
+    <section class="card modern-card boxes-section bn-boxes-section">
+      <div class="bn-boxes-section__head flex align-items-start justify-content-between flex-wrap gap-3 mb-3">
+        <div>
+          <div class="bn-boxes-section__title-row flex align-items-center flex-wrap gap-2">
+            <h3 class="boxes-title m-0">
+              <i class="pi pi-box" aria-hidden="true"></i>
+              {{ 'bordereau.boxesSectionTitle' | transloco }}
+            </h3>
+            <span class="bn-boxes-count" [class.bn-boxes-count--filled]="boxes().length > 0">
+              {{ boxes().length }}
+            </span>
+          </div>
+          <p class="bn-boxes-section__lead m-0 mt-2">
+            {{ 'bordereau.boxesSectionLead' | transloco }}
+          </p>
+        </div>
+        @if (boxes().length > 0) {
+          <button
+            pButton
+            pRipple
+            type="button"
+            [label]="'bordereau.addBox' | transloco"
+            icon="pi pi-plus"
+            class="bn-add-box-btn shrink-0"
+            (click)="ajouterBoite()"></button>
+        }
+      </div>
+
+      @if (boxes().length === 0) {
+        <div class="bn-boxes-empty" role="region" [attr.aria-label]="'bordereau.noBoxesAria' | transloco">
+          <div class="bn-boxes-empty__panel">
+            <div class="bn-boxes-empty__icon-stack" aria-hidden="true">
+              <span class="bn-boxes-empty__icon-ring"></span>
+              <i class="pi pi-box"></i>
+            </div>
+            <h4 class="bn-boxes-empty__title m-0">{{ 'bordereau.noBoxesTitle' | transloco }}</h4>
+            <p class="bn-boxes-empty__text m-0">
+              {{ 'bordereau.noBoxesText' | transloco }}
+            </p>
+            <button
+              pButton
+              pRipple
+              type="button"
+              [label]="'bordereau.addFirstBox' | transloco"
+              icon="pi pi-plus"
+              class="bn-boxes-empty__cta"
+              (click)="ajouterBoite()"></button>
+          </div>
+        </div>
+      } @else {
+        <div class="boxes-list flex flex-column gap-3">
+          @for (b of boxes(); track b.tempId; let i = $index) {
+            <article class="boite-card" [attr.aria-label]="'bordereau.boxAria' | transloco: { index: i + 1 }">
+              <header class="boite-card__header flex align-items-center justify-content-between gap-2">
+                <span class="boite-card__index">
+                  <i class="pi pi-box" aria-hidden="true"></i>
+                  {{ 'bordereau.boxIndex' | transloco: { index: i + 1 } }}
+                </span>
+                <button
+                  pButton
+                  pRipple
+                  type="button"
+                  icon="pi pi-trash"
+                  class="p-button-rounded p-button-danger p-button-text boite-remove"
+                  [attr.aria-label]="'bordereau.removeBoxAria' | transloco"
+                  (click)="retirerBoite(b.tempId)"></button>
+              </header>
+              <div class="boite-card__body grid">
+                <div class="col-12 md:col-6 field">
+                  <label [attr.for]="'titre-' + b.tempId">{{ 'bordereau.boxTitleLabel' | transloco }} <span class="req">*</span></label>
+                  <input
+                    pInputText
+                    [id]="'titre-' + b.tempId"
+                    [(ngModel)]="b.titre"
+                    class="w-full bn-input"
+                    [placeholder]="'bordereau.boxTitlePlaceholder' | transloco" />
+                </div>
+                <div class="col-12 md:col-6 field">
+                  <label [attr.for]="'tdoc-' + b.tempId">{{ 'bordereau.documentType' | transloco }} <span class="req">*</span></label>
+                  <p-select
+                    [inputId]="'tdoc-' + b.tempId"
+                    [options]="documentTypeOptions()"
+                    [ngModel]="b.documentType"
+                    (ngModelChange)="onBoiteDocumentTypeChange(b.tempId, $event)"
+                    [placeholder]="'bordereau.chooseTypePlaceholder' | transloco"
+                    optionLabel="title"
+                    [filter]="true"
+                    [filterPlaceholder]="'bordereau.searchTypePlaceholder' | transloco"
+                    filterBy="title"
+                    appendTo="body"
+                    scrollHeight="320px"
+                    panelStyleClass="doc-types-select-panel doc-types-dialog-select-panel"
+                    styleClass="w-full bn-select"></p-select>
+                </div>
+                @if (b.documentType) {
+                  <div class="col-12 field regle-block">
+                    @if (b.regleStatus === 'loading') {
+                      <p class="m-0 hint-text">{{ 'bordereau.loadingRule' | transloco }}</p>
+                    } @else if (b.regleStatus === 'error') {
+                      <p class="m-0 regle-error">
+                        {{ 'bordereau.noValidRule' | transloco }}
+                      </p>
+                    } @else if (b.regleStatus === 'ok' && b.reglePreview) {
+                      <label class="regle-label">{{ 'bordereau.ruleValidLabel' | transloco }}</label>
+                      <div class="regle-summary">
+                        <span class="regle-ref">{{ b.reglePreview.reference }}</span>
+                        <span class="regle-sep">·</span>
+                        <span>{{ 'bordereau.decisionPrefix' | transloco }} {{ decisionLabel(b.reglePreview.finalDecision) }}</span>
+                        @if (!b.reglePreview.activeUnknown && b.reglePreview.activeYears != null) {
+                          <span class="regle-sep">·</span>
+                          <span>{{ 'bordereau.activeYearsPrefix' | transloco }} {{ b.reglePreview.activeYears }} {{ 'bordereau.yearUnit' | transloco }}</span>
+                        }
+                        @if (b.reglePreview.activeUnknown) {
+                          <span class="regle-sep">·</span>
+                          <span>{{ 'bordereau.activeYearsPrefix' | transloco }} {{ 'bordereau.unknownDurationShort' | transloco }}</span>
+                        }
+                        @if (!b.reglePreview.semiActiveUnknown && b.reglePreview.semiActiveYears != null) {
+                          <span class="regle-sep">·</span>
+                          <span>{{ 'bordereau.semiActiveYearsPrefix' | transloco }} {{ b.reglePreview.semiActiveYears }} {{ 'bordereau.yearUnit' | transloco }}</span>
+                        }
+                        @if (b.reglePreview.semiActiveUnknown) {
+                          <span class="regle-sep">·</span>
+                          <span>{{ 'bordereau.semiActiveYearsPrefix' | transloco }} {{ 'bordereau.unknownDurationShort' | transloco }}</span>
+                        }
+                      </div>
+                      @if (b.reglePreview.activeUnknown) {
+                        <div class="regle-active-years-field mt-3">
+                          <label [attr.for]="'active-years-' + b.tempId" class="regle-label">
+                            {{ 'bordereau.activeYearsRequiredLabel' | transloco }} <span class="req">*</span>
+                          </label>
+                          <p class="m-0 mb-2 hint-text">{{ 'bordereau.activeYearsRequiredHint' | transloco }}</p>
+                          <p-inputNumber
+                            [inputId]="'active-years-' + b.tempId"
+                            [ngModel]="b.renseignerAnneesActives"
+                            (ngModelChange)="onActiveYearsChange(b.tempId, $event)"
+                            [min]="0"
+                            [showButtons]="true"
+                            [useGrouping]="false"
+                            [placeholder]="'bordereau.activeYearsPlaceholder' | transloco"
+                            class="w-full bn-input-number"></p-inputNumber>
+                          <div class="flex align-items-center gap-2 mt-2 flex-wrap">
+                            <button
+                              pButton
+                              pRipple
+                              type="button"
+                              icon="pi pi-check"
+                              class="p-button-sm p-button-outlined"
+                              [label]="'bordereau.activeYearsConfirmButton' | transloco"
+                              (click)="openConfirmActiveYears(b)"></button>
+                            @if (b.anneesActivesConfirmees) {
+                              <span class="regle-active-years-confirmed">
+                                <i class="pi pi-check-circle mr-1" aria-hidden="true"></i>
+                                {{ 'bordereau.activeYearsConfirmedBadge' | transloco: { annees: b.renseignerAnneesActives } }}
+                              </span>
+                            }
+                          </div>
+                        </div>
+                      }
+                    }
+                  </div>
+                }
+                <div class="col-6 md:col-3 field">
+                  <label [attr.for]="'amin-' + b.tempId">{{ 'bordereau.yearMinLabel' | transloco }} <span class="req">*</span></label>
+                  <input
+                    pInputText
+                    type="number"
+                    [id]="'amin-' + b.tempId"
+                    [ngModel]="b.anneeMin"
+                    (ngModelChange)="b.anneeMin = $event === '' || $event == null ? null : +$event"
+                    class="w-full bn-input" />
+                </div>
+                <div class="col-6 md:col-3 field">
+                  <label [attr.for]="'amax-' + b.tempId">{{ 'bordereau.yearMaxLabel' | transloco }} <span class="req">*</span></label>
+                  <input
+                    pInputText
+                    type="number"
+                    [id]="'amax-' + b.tempId"
+                    [ngModel]="b.anneeMax"
+                    (ngModelChange)="b.anneeMax = $event === '' || $event == null ? null : +$event"
+                    class="w-full bn-input" />
+                </div>
+                <p class="col-12 m-0 hint-text">
+                  {{ 'bordereau.ruleUsesMaxYear' | transloco }}
+                </p>
+                <div class="col-12 md:col-4 field">
+                  <label [attr.for]="'met-' + b.tempId">{{ 'bordereau.metrageLabel' | transloco }} <span class="req">*</span></label>
+                  <p-select
+                    [inputId]="'met-' + b.tempId"
+                    [options]="metrageOptions()"
+                    [(ngModel)]="b.metrageCm"
+                    optionLabel="label"
+                    optionValue="value"
+                    [filter]="true"
+                    [filterPlaceholder]="'bordereau.searchPlaceholderShort' | transloco"
+                    filterBy="label"
+                    appendTo="body"
+                    scrollHeight="240px"
+                    panelStyleClass="doc-types-select-panel doc-types-dialog-select-panel"
+                    styleClass="w-full bn-select"></p-select>
+                </div>
+                <div class="col-12 md:col-8 field">
+                  <label [attr.for]="'cont-' + b.tempId">{{ 'bordereau.contentDescription' | transloco }}</label>
+                  <input
+                    pInputText
+                    [id]="'cont-' + b.tempId"
+                    [(ngModel)]="b.contenu"
+                    class="w-full bn-input"
+                    [placeholder]="'bordereau.contentPlaceholder' | transloco" />
+                </div>
+                <div class="col-12 field">
+                  <label [attr.for]="'kw-' + b.tempId">{{ 'bordereau.keywordsLabel' | transloco }} <span class="req">*</span></label>
+                  <input
+                    pInputText
+                    [id]="'kw-' + b.tempId"
+                    [(ngModel)]="b.motsCles"
+                    class="w-full bn-input bn-input-mots-cles"
+                    [placeholder]="'bordereau.keywordsPlaceholder' | transloco"
+                    autocomplete="off"
+                    autocapitalize="off"
+                    spellcheck="false"
+                    name="bn-mots-cles-{{ b.tempId }}" />
+                </div>
+              </div>
+            </article>
+          }
+        </div>
+      }
+    </section>
+
+    <div class="footer-actions bn-footer-actions flex justify-content-end gap-2 mt-4 flex-wrap">
+      <button
+        pButton
+        pRipple
+        type="button"
+        [label]="'common.cancel' | transloco"
+        icon="pi pi-times"
+        class="p-button-outlined bn-cancel"
+        [disabled]="submitting() || validatingAffectation()"
+        (click)="annuler()"></button>
+      <button
+        pButton
+        pRipple
+        type="button"
+        [label]="enregistrerEnAttenteLabel()"
+        icon="pi pi-save"
+        class="p-button-outlined bn-enregistrer-attente"
+        [disabled]="submitting() || validatingAffectation() || resumeLoading() || hasRegleActiveUnknownPending()"
+        [loading]="submitting()"
+        (click)="enregistrerEnAttente()"></button>
+      @if (canAssignEmplacements() && (!mettreEnAttente() || isResume())) {
+        <button
+          pButton
+          pRipple
+          type="button"
+          [label]="assignerButtonLabel()"
+          icon="pi pi-map-marker"
+          class="bn-assigner"
+          [disabled]="submitting() || validatingAffectation() || resumeLoading() || hasRegleActiveUnknownPending()"
+          (click)="preparerAssignation()"></button>
+      }
+    </div>
+  </div>
+
+  <p-dialog
+    [visible]="affectDialogVisible()"
+    (visibleChange)="affectDialogVisible.set($event)"
+    [modal]="true"
+    [draggable]="false"
+    [closable]="!submitting()"
+    [dismissableMask]="!submitting()"
+    [style]="{ width: 'min(96vw, 54rem)', maxHeight: '88vh' }"
+    [contentStyle]="{
+      overflow: 'hidden',
+      display: 'flex',
+      flexDirection: 'column',
+      padding: '0',
+      maxHeight: 'calc(88vh - 5.5rem)'
+    }"
+    styleClass="modern-dialog bn-affect-dialog bn-affect-dialog--modern"
+    appendTo="body">
+    <ng-template pTemplate="header">
+      <div class="regles-create-head bn-affect-dialog__head">
+        <div class="regles-create-head__brand">
+          <span class="regles-create-head__icon bn-affect-dialog__icon" aria-hidden="true">
+            <i class="pi pi-map-marker"></i>
+          </span>
+          <div class="regles-create-head__text">
+            <h2 class="regles-create-head__title m-0">{{ 'bordereau.affectDialogTitle' | transloco }}</h2>
+            <p class="regles-create-head__subtitle m-0">
+              {{ 'bordereau.affectDialogSubtitle' | transloco }}
+            </p>
+          </div>
+        </div>
+      </div>
+    </ng-template>
+
+    <div class="bn-affect-dialog-layout">
+    <div class="bn-affect-dialog-body">
+      <div class="bn-affect-stack">
+      <p class="bn-affect-numero m-0">
+        {{ 'bordereau.affectSlipNo' | transloco }} <strong>{{ numeroReadonlyDisplay() }}</strong>
+      </p>
+      <p class="bn-affect-lead m-0">
+        <span [innerHTML]="'bordereau.affectLead' | transloco"></span>
+        @if (validatingMode()) {
+          {{ 'bordereau.affectConfirmResume' | transloco }}
+        } @else {
+          {{ 'bordereau.affectConfirmCreate' | transloco }}
+        }
+        <span [innerHTML]="'bordereau.affectManualHint' | transloco"></span>
+      </p>
+      @if (hasRegleSemiActiveUnknown() && !hasRegleActiveUnknownPending()) {
+        <p class="bn-affect-semi-info m-0" role="status">
+          <i class="pi pi-info-circle mr-2" aria-hidden="true"></i>
+          {{ 'bordereau.affectSemiInfo' | transloco }}
+        </p>
+      }
+      @if (affectSuggestionsLoading()) {
+        <p class="m-0 text-600 flex align-items-center gap-2">
+          <i class="pi pi-spinner loading-spin-icon" aria-hidden="true"></i>
+          {{ 'bordereau.loadingAvailableBlocs' | transloco }}
+        </p>
+      } @else if (anyAffectSuggestionIncomplete()) {
+        <p class="bn-affect-warn m-0" role="status">
+          <i class="pi pi-exclamation-triangle mr-2" aria-hidden="true"></i>
+          {{ 'bordereau.affectIncompleteWarn' | transloco }}
+        </p>
+      }
+
+      @if (!manualMode()) {
+        <div class="bn-affect-table-wrap">
+          <table class="bn-affect-table">
+            <thead>
+              <tr>
+                <th scope="col">{{ 'bordereau.colBox' | transloco }}</th>
+                <th scope="col">{{ 'bordereau.colProposedBlocs' | transloco }}</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (bx of boxes(); track bx.tempId; let i = $index) {
+                <tr [class.bn-affect-row-warn]="affectSuggestionIncomplete(i)">
+                  <td>{{ bx.titre.trim() || emDash() }}</td>
+                  <td class="bn-affect-bloc">{{ blocProposeLabel(i) }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+
+      <div class="bn-manual-toggle">
+        <div class="bn-manual-toggle__copy">
+          <span class="bn-manual-toggle__label">
+            <i class="pi pi-sliders-h" aria-hidden="true"></i>
+            {{ 'bordereau.assignmentMode' | transloco }}
+          </span>
+          <span class="bn-manual-toggle__mode">
+            {{
+              manualMode()
+                ? ('bordereau.modeManual' | transloco)
+                : ('bordereau.modeAutomatic' | transloco)
+            }}
+          </span>
+        </div>
+        <button
+          pButton
+          pRipple
+          type="button"
+          [label]="manualMode() ? ('bordereau.modeAutomaticBtn' | transloco) : ('bordereau.modeManualBtn' | transloco)"
+          [icon]="manualMode() ? 'pi pi-undo' : 'pi pi-pencil'"
+          class="p-button-sm bn-manual-toggle-btn"
+          [disabled]="submitting() || validatingAffectation()"
+          (click)="basculerModeManuel()"></button>
+      </div>
+
+      @if (manualMode()) {
+        <div class="bn-manual-section">
+          <p class="bn-manual-intro m-0">
+            <i class="pi pi-info-circle mr-2" aria-hidden="true"></i>
+            {{ 'bordereau.manualIntro' | transloco }}
+          </p>
+
+          <div class="bn-manual-boxes">
+            @for (bx of boxes(); track bx.tempId; let i = $index) {
+              <div
+                class="bn-manual-box"
+                [class.bn-manual-box--active]="manualActiveBoxIndex() === i"
+                [class.bn-manual-box--complete]="manualBoxBlocsValid(i) && !manualBoxLayoutInvalid(i)"
+                [class.bn-manual-box--invalid]="manualBoxLayoutInvalid(i)"
+                (click)="setManualActiveBoxIndex(i)"
+                (keydown.enter)="setManualActiveBoxIndex(i)"
+                tabindex="0"
+                role="button"
+                [attr.aria-pressed]="manualActiveBoxIndex() === i">
+                <div class="bn-manual-box-header">
+                  <div class="bn-manual-box-title-row">
+                    <span class="bn-manual-box-index">#{{ i + 1 }}</span>
+                    <strong class="bn-manual-box-name">{{ bx.titre.trim() || emDash() }}</strong>
+                  </div>
+                  <div class="bn-manual-box-meta">
+                    <span class="bn-manual-box-count">
+                      {{ 'bordereau.blocCount' | transloco: { selected: manualSelectedBlocIds(i).length, required: blocsRequisForMetrage(bx.metrageCm) } }}
+                    </span>
+                    <span class="bn-manual-box-layout">{{ manualBoxLayoutLabel(i) }}</span>
+                  </div>
+                </div>
+                @if (manualSelectedBlocIds(i).length > 0) {
+                  <div class="bn-manual-box-chips flex flex-wrap gap-1 mt-2">
+                    @for (numero of manualSelectedBlocNumeros(i); track numero; let j = $index) {
+                      <span class="bn-manual-chip">
+                        {{ numero }}
+                        <button
+                          type="button"
+                          class="bn-manual-chip-x"
+                          [disabled]="submitting()"
+                          (click)="retirerManualBloc(i, manualSelectedBlocIds(i)[j]); $event.stopPropagation()"
+                          [attr.aria-label]="'bordereau.removeBlocAria' | transloco">
+                          <i class="pi pi-times" aria-hidden="true"></i>
+                        </button>
+                      </span>
+                    }
+                  </div>
+                }
+              </div>
+            }
+          </div>
+
+          <p class="bn-manual-pool-title m-0">
+            <i class="pi pi-th-large mr-2" aria-hidden="true"></i>
+            <strong>{{ 'bordereau.freeBlocsTitle' | transloco }}</strong> · {{ 'bordereau.freeBlocsHint' | transloco }}
+          </p>
+
+          @if (freeBlocsLoading()) {
+            <p class="m-0 text-600 flex align-items-center gap-2">
+              <i class="pi pi-spinner loading-spin-icon" aria-hidden="true"></i>
+              {{ 'bordereau.loadingFreeBlocs' | transloco }}
+            </p>
+          } @else if (freeBlocsAvailable().length === 0) {
+            <p class="bn-affect-warn m-0">
+              <i class="pi pi-exclamation-triangle mr-2" aria-hidden="true"></i>
+              {{ 'bordereau.noFreeBlocs' | transloco }}
+            </p>
+          } @else {
+            <div class="bn-manual-pool">
+              @for (group of freeBlocsGroupedByTablette(); track group.tablette) {
+                <div class="bn-manual-tablette">
+                  <div class="bn-manual-tablette-head">{{ 'bordereau.tabletteLabel' | transloco: { numero: group.tablette } }}</div>
+                  <div class="bn-manual-tablette-blocs">
+                    @for (b of group.blocs; track b.id) {
+                      <button
+                        type="button"
+                        class="bn-manual-bloc"
+                        [class.bn-manual-bloc--selected-active]="manualBlocSelectedByActiveBox(b.id)"
+                        [class.bn-manual-bloc--selected-other]="
+                          manualBlocOwnerIndex(b.id) != null &&
+                          manualBlocOwnerIndex(b.id) !== manualActiveBoxIndex()
+                        "
+                        [attr.data-owner]="
+                          manualBlocOwnerIndex(b.id) != null
+                            ? '#' + (manualBlocOwnerIndex(b.id)! + 1)
+                            : null
+                        "
+                        [disabled]="submitting() || manualActiveBoxIndex() == null"
+                        (click)="toggleManualBloc(b.id)">
+                        {{ b.numero }}
+                      </button>
+                    }
+                  </div>
+                </div>
+              }
+            </div>
+          }
+        </div>
+      }
+
+      </div>
+    </div>
+
+    <div class="bn-affect-footer-bar">
+      <div class="bn-affect-footer-actions">
+      <button
+        pButton
+        pRipple
+        type="button"
+        [label]="'common.cancel' | transloco"
+        class="bn-affect-cancel"
+        [disabled]="submitting() || validatingAffectation()"
+        (click)="fermerAffectDialog()"></button>
+      <button
+        pButton
+        pRipple
+        type="button"
+        [label]="confirmAssignationLabel()"
+        icon="pi pi-check"
+        class="bn-affect-confirm"
+        [disabled]="
+          submitting() ||
+          validatingAffectation() ||
+          affectSuggestionsLoading() ||
+          (manualMode() && !manualAllBoxesValid())
+        "
+        [loading]="submitting() || validatingAffectation()"
+        (click)="confirmerAssignation()"></button>
+      </div>
+    </div>
+    </div>
+  </p-dialog>
+
+  <p-dialog
+    [visible]="crossTabletteDialogVisible()"
+    (visibleChange)="crossTabletteDialogVisible.set($event)"
+    [modal]="true"
+    [draggable]="false"
+    [closable]="!submitting()"
+    [dismissableMask]="!submitting()"
+    [style]="{ width: 'min(760px, 96vw)' }"
+    styleClass="modern-dialog bn-cross-tablette-dialog"
+    [header]="'bordereau.fragmentationTitle' | transloco">
+    <div class="bn-cross-tablette-dialog-body">
+      <p class="bn-affect-numero m-0 mb-3">
+        {{ 'bordereau.affectSlipNo' | transloco }} <strong>{{ numeroReadonlyDisplay() }}</strong>
+      </p>
+      <p class="bn-cross-intro m-0 mb-3" [innerHTML]="'bordereau.fragmentationIntro' | transloco"></p>
+
+      @if (affectSuggestionsLoading()) {
+        <p class="m-0 text-600 flex align-items-center gap-2 mb-3">
+          <i class="pi pi-spinner loading-spin-icon" aria-hidden="true"></i>
+          {{ 'bordereau.loadingProposals' | transloco }}
+        </p>
+      }
+
+      @if (anyAffectSuggestionIncomplete()) {
+        <p class="bn-affect-warn m-0 mb-3" role="status">
+          <i class="pi pi-exclamation-triangle mr-2" aria-hidden="true"></i>
+          {{ 'bordereau.fragmentationIncompleteWarn' | transloco }}
+        </p>
+      }
+
+      <div class="bn-affect-table-wrap">
+        <table class="bn-affect-table">
+          <thead>
+            <tr>
+              <th scope="col">{{ 'bordereau.colBox' | transloco }}</th>
+              <th scope="col">{{ 'bordereau.colFragmentedProposal' | transloco }}</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (bx of boxes(); track bx.tempId; let i = $index) {
+              <tr [class.bn-affect-row-warn]="affectSuggestionIncomplete(i)">
+                <td>{{ bx.titre.trim() || emDash() }}</td>
+                <td class="bn-affect-bloc">
+                  @if (blocProposeMultiTabletteDetail(i); as mtd) {
+                    <div class="bn-cross-segments flex flex-column gap-1">
+                      <span
+                        ><span class="bn-affect-split-tag" [innerHTML]="'bordereau.firstPart' | transloco"></span> {{ mtd.first }}</span
+                      >
+                      <span class="bn-cross-then text-600 font-italic">{{ 'bordereau.thenNextTablette' | transloco }}</span>
+                      <span
+                        ><span class="bn-affect-split-tag">{{ 'bordereau.continuation' | transloco }}</span> {{ mtd.second }}</span
+                      >
+                    </div>
+                  } @else if (blocProposeSplitDetail(i); as sd) {
+                    <div class="bn-affect-split-blocs flex flex-column gap-1">
+                      <span><span class="bn-affect-split-tag" [innerHTML]="'bordereau.range1' | transloco"></span> {{ sd.first }}</span>
+                      <span><span class="bn-affect-split-tag" [innerHTML]="'bordereau.range2' | transloco"></span> {{ sd.second }}</span>
+                    </div>
+                  } @else {
+                    {{ blocProposeLabel(i) }}
+                  }
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+
+      <div class="flex flex-wrap justify-content-between align-items-center gap-2 bn-cross-footer border-top-1 border-200 pt-3 mt-3">
+        <button
+          pButton
+          pRipple
+          type="button"
+          [label]="'common.cancel' | transloco"
+          class="p-button-text bn-cross-cancel"
+          [disabled]="submitting()"
+          (click)="fermerCrossTabletteDialog()"></button>
+        <div class="flex flex-wrap justify-content-end gap-2 bn-cross-actions">
+          <button
+            pButton
+            pRipple
+            type="button"
+            [label]="'bordereau.assignManually' | transloco"
+            icon="pi pi-pencil"
+            class="bn-cross-manual-solid"
+            [disabled]="submitting() || validatingAffectation() || affectSuggestionsLoading()"
+            (click)="assignerManuellementFragmentation()"></button>
+          <button
+            pButton
+            pRipple
+            type="button"
+            [label]="confirmAssignationLabel()"
+            icon="pi pi-check"
+            class="bn-cross-confirm"
+            [disabled]="
+              submitting() || validatingAffectation() || affectSuggestionsLoading() || anyAffectSuggestionIncomplete()
+            "
+            [loading]="submitting() || validatingAffectation()"
+            (click)="confirmerAssignation()"></button>
+        </div>
+      </div>
+    </div>
+  </p-dialog>
+
+  <p-dialog
+    [visible]="activeYearsConfirmVisible()"
+    (visibleChange)="onActiveYearsConfirmVisibleChange($event)"
+    [header]="'bordereau.activeYearsConfirmTitle' | transloco"
+    [modal]="true"
+    appendTo="body"
+    [blockScroll]="true"
+    [dismissableMask]="true"
+    [closeOnEscape]="true"
+    [style]="{ width: 'min(96vw, 40rem)' }"
+    styleClass="modern-dialog alertes-dialog-portal alertes-confirm-dialog alertes-confirm-dialog--reporter"
+    [closable]="true"
+    [draggable]="false"
+    [resizable]="false">
+    @if (pendingActiveYearsBox(); as row) {
+      <div class="alertes-confirm-dialog__wrap">
+        <div class="alertes-confirm-dialog__shell">
+          <div class="alertes-confirm-dialog__icon-wrap" aria-hidden="true">
+            <i class="pi pi-clock"></i>
+          </div>
+          <p class="alertes-confirm-dialog__message">
+            {{
+              'bordereau.activeYearsConfirmMessage'
+                | transloco
+                  : {
+                      titre: row.titre,
+                      reference: row.reglePreview?.reference ?? '',
+                      annees: row.renseignerAnneesActives
+                    }
+            }}
+          </p>
+          <p class="alertes-confirm-dialog__hint">{{ 'bordereau.activeYearsConfirmHint' | transloco }}</p>
+        </div>
+        <div class="alertes-confirm-dialog__actions">
+          <button
+            pButton
+            pRipple
+            type="button"
+            [label]="'common.cancel' | transloco"
+            class="p-button-outlined alertes-confirm-dialog__btn-cancel"
+            (click)="activeYearsConfirmVisible.set(false)"></button>
+          <button
+            pButton
+            pRipple
+            type="button"
+            [label]="'common.confirm' | transloco"
+            icon="pi pi-check"
+            class="alertes-confirm-dialog__btn-primary"
+            (click)="confirmActiveYearsLink()"></button>
+        </div>
+      </div>
+    }
+  </p-dialog>
+</div>

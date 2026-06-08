@@ -1,0 +1,74 @@
+@if (loading()) {
+  <div class="lignes-loading">
+    <i class="pi pi-spinner pi-spin" aria-hidden="true"></i>
+    <span>{{ 'alertes.lignesLoading' | transloco }}</span>
+  </div>
+} @else if (rows().length === 0) {
+  <p class="lignes-empty m-0">
+    <i class="pi pi-check-circle mr-2"></i>
+    {{ 'alertes.lignesEmpty' | transloco }}
+  </p>
+} @else {
+  <div class="lignes-list">
+    @for (row of rows(); track row.tabletteId) {
+      <article class="ligne-card">
+        <div class="ligne-card__head">
+          <div class="ligne-card__title-wrap">
+            <i class="fa-solid fa-layer-group ligne-card__icon" aria-hidden="true"></i>
+            <div>
+              <h5 class="ligne-card__title m-0">{{ row.rowLabel }}</h5>
+              <span class="ligne-card__cm">{{ 'alertes.linearCm' | transloco: { cm: row.linearCm } }}</span>
+              <span class="ligne-card__epi">{{ 'alertes.epi' | transloco: { numero: row.epiNumero } }}</span>
+            </div>
+          </div>
+          <button
+            pButton
+            pRipple
+            type="button"
+            icon="pi pi-external-link"
+            class="p-button-rounded p-button-text"
+            [pTooltip]="'alertes.viewLocations' | transloco"
+            tooltipPosition="left"
+            (click)="openEmplacement(row)"></button>
+        </div>
+        <div class="ligne-card__fill">
+          <div class="ligne-card__fill-labels">
+            <span class="fill-label">{{ 'alertes.fillRate' | transloco }}</span>
+            <strong class="fill-pct" [class.fill-pct--critical]="row.fillPercent >= 90">{{ row.fillPercent }}%</strong>
+          </div>
+          <div class="fill-bar" role="presentation">
+            <div
+              class="fill-bar__inner"
+              [class]="fillBarClass(row.fillPercent)"
+              [style.width.%]="row.fillPercent"></div>
+          </div>
+          <p class="ligne-card__hint m-0">
+            <i class="pi pi-exclamation-circle" aria-hidden="true"></i>
+            {{ 'alertes.almostFull' | transloco: { occupied: row.occupiedCount, total: row.totalCount } }}
+          </p>
+        </div>
+      </article>
+    }
+  </div>
+  @if (totalPages() > 1) {
+    <nav class="lignes-pager flex align-items-center justify-content-center gap-3 mt-3">
+      <button
+        pButton
+        pRipple
+        type="button"
+        icon="pi pi-chevron-left"
+        class="p-button-rounded p-button-outlined p-button-sm"
+        [disabled]="currentPage() <= 0 || loading()"
+        (click)="goPage(currentPage() - 1)"></button>
+      <span>{{ currentPage() + 1 }} / {{ totalPages() }}</span>
+      <button
+        pButton
+        pRipple
+        type="button"
+        icon="pi pi-chevron-right"
+        class="p-button-rounded p-button-outlined p-button-sm"
+        [disabled]="currentPage() >= totalPages() - 1 || loading()"
+        (click)="goPage(currentPage() + 1)"></button>
+    </nav>
+  }
+}

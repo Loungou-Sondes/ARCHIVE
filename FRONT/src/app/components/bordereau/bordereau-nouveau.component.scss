@@ -1,0 +1,12 @@
+@import '../../../colors';
+
+:host {
+  display: block;
+}
+
+.bordereau-nouveau-page-shell {
+  display: block;
+  background: $gray-100;
+  min-height: calc(100vh - 70px);
+  padding: 1.25rem 1rem 2.5rem;
+}

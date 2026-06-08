@@ -1,0 +1,344 @@
+<div class="gestion-agent-page gestion-agent-host">
+  <div class="agents-panel card modern-card">
+    <header class="panel-toolbar">
+      <div class="panel-toolbar__main">
+        <div class="header-icon-container panel-toolbar__icon">
+          <i class="pi pi-users" aria-hidden="true"></i>
+        </div>
+        <div class="panel-toolbar__text">
+          <h1 class="panel-toolbar__title m-0">{{ 'agents.title' | transloco }}</h1>
+          <p class="panel-toolbar__hint m-0">{{ 'agents.subtitle' | transloco }}</p>
+        </div>
+      </div>
+
+      <div class="panel-toolbar__meta">
+        <span class="meta-pill">{{ agentCountLabel() }}</span>
+        <span class="meta-pill meta-pill--ok">{{ activeCountLabel() }}</span>
+        @if (inactiveCount() > 0) {
+          <span class="meta-pill meta-pill--ko">{{ inactiveCountLabel() }}</span>
+        }
+        @if (passwordResetCount() > 0) {
+          <span class="meta-pill meta-pill--warn">{{ 'agents.passwordResetPendingCount' | transloco: { count: passwordResetCount() } }}</span>
+        }
+        <button
+          pButton
+          pRipple
+          type="button"
+          icon="pi pi-refresh"
+          [label]="'common.refresh' | transloco"
+          class="panel-toolbar__refresh p-button-outlined p-button-sm"
+          [pTooltip]="'agents.reloadList' | transloco"
+          tooltipPosition="bottom"
+          (click)="refreshTable(0)"></button>
+      </div>
+    </header>
+
+    <div class="search-row flex-1 mb-3">
+      <i class="pi pi-search" aria-hidden="true"></i>
+      <input
+        pInputText
+        type="search"
+        class="w-full agents-search-input"
+        [placeholder]="'agents.searchPlaceholder' | transloco"
+        [ngModel]="searchText()"
+        (ngModelChange)="searchText.set($event); onSearchValueChange()" />
+    </div>
+
+    <p-table
+      [value]="agents()"
+      dataKey="id"
+      [rows]="pageSize"
+      [lazy]="true"
+      (onLazyLoad)="onLazyLoad($event)"
+      [loading]="loadingTable()"
+      [rowHover]="true"
+      styleClass="modern-table agents-table"
+      [scrollable]="true"
+      [paginator]="true"
+      [totalRecords]="totalRecords()"
+      [rowsPerPageOptions]="[10, 20, 30, 50]"
+      responsiveLayout="scroll"
+      [currentPageReportTemplate]="pageReportTemplate()"
+      [showCurrentPageReport]="true">
+      <ng-template pTemplate="header">
+        <tr>
+          <th class="col-agent">{{ 'agents.agent' | transloco }}</th>
+          <th class="col-mat">{{ 'agents.colMatricule' | transloco }}</th>
+          <th class="col-role">{{ 'agents.colRole' | transloco }}</th>
+          <th class="col-direction">{{ 'agents.colDirection' | transloco }}</th>
+          <th class="col-port">{{ 'agents.colPort' | transloco }}</th>
+          <th class="col-status">{{ 'agents.colStatus' | transloco }}</th>
+          <th class="col-actions">{{ 'agents.colActions' | transloco }}</th>
+        </tr>
+      </ng-template>
+
+      <ng-template pTemplate="body" let-agent>
+        <tr class="agent-row">
+          <td class="col-agent">
+            <div class="agent-cell">
+              <span class="agent-cell__avatar" aria-hidden="true">{{ agentInitials(agent) }}</span>
+              <div class="agent-cell__info">
+                <span class="agent-cell__name">{{ displayName(agent) }}</span>
+                @if (hasText(agent.userName)) {
+                  <span class="agent-cell__login">
+                    <i class="pi pi-at" aria-hidden="true"></i>
+                    {{ agent.userName }}
+                  </span>
+                }
+              </div>
+            </div>
+          </td>
+          <td class="col-mat">
+            @if (hasText(agent.userRegistrationNumber)) {
+              <span class="matricule-badge">{{ agent.userRegistrationNumber }}</span>
+            } @else {
+              <span class="cell-empty">{{ 'common.notProvided' | transloco }}</span>
+            }
+          </td>
+          <td class="col-role">
+            @if (hasText(agent.role)) {
+              <span class="badge-position">{{ roleLabel(agent.role) }}</span>
+            } @else {
+              <span class="cell-empty">{{ 'common.emDash' | transloco }}</span>
+            }
+          </td>
+          <td class="col-direction">
+            @if (hasText(agent.directionId)) {
+              <span class="direction-text">{{ directionLabel(agent) }}</span>
+            } @else {
+              <span class="cell-empty">{{ 'common.emDash' | transloco }}</span>
+            }
+          </td>
+          <td class="col-port">
+            @if (hasPort(agent)) {
+              <span class="badge-harbor">{{ portLabel(agent) }}</span>
+            } @else {
+              <span class="cell-empty">{{ 'common.emDash' | transloco }}</span>
+            }
+          </td>
+          <td class="col-status">
+            <span class="badge-status" [ngClass]="statusClass(agent)">
+              <span class="badge-status__dot" aria-hidden="true"></span>
+              {{ statusLabel(agent) }}
+            </span>
+            @if (agent.passwordResetRequested) {
+              <span class="badge-password-reset mt-1">{{ 'agents.passwordResetBadge' | transloco }}</span>
+            }
+          </td>
+          <td class="col-actions">
+            <div class="row-actions">
+              @if (agent.passwordResetRequested) {
+                <button
+                  pButton
+                  pRipple
+                  type="button"
+                  icon="pi pi-check-circle"
+                  class="icon-action icon-action--reset p-button-rounded p-button-text"
+                  [pTooltip]="'agents.approvePasswordResetAction' | transloco"
+                  tooltipPosition="top"
+                  [attr.aria-label]="'agents.approvePasswordResetAction' | transloco"
+                  [loading]="resettingPasswordId() === agent.id"
+                  [disabled]="!agent.id?.trim() || resettingPasswordId() === agent.id"
+                  (click)="openPasswordReset(agent)"></button>
+              }
+              <button
+                pButton
+                pRipple
+                type="button"
+                icon="pi pi-eye"
+                class="icon-action icon-action--view p-button-rounded p-button-text"
+                [pTooltip]="'agents.viewProfile' | transloco"
+                tooltipPosition="top"
+                [attr.aria-label]="'agents.viewProfileAria' | transloco"
+                [disabled]="!agent.id?.trim()"
+                (click)="viewAgent(agent)"></button>
+              <button
+                pButton
+                pRipple
+                type="button"
+                [icon]="isAgentActive(agent) ? 'pi pi-ban' : 'pi pi-check-circle'"
+                class="icon-action p-button-rounded p-button-text"
+                [class.icon-action--deactivate]="isAgentActive(agent)"
+                [class.icon-action--activate]="!isAgentActive(agent)"
+                [pTooltip]="toggleAccountTooltip(agent)"
+                tooltipPosition="top"
+                [attr.aria-label]="toggleAccountTooltip(agent)"
+                [loading]="togglingStatusId() === agent.id"
+                [disabled]="togglingStatusId() === agent.id"
+                (click)="toggleAgentStatus(agent)"></button>
+            </div>
+          </td>
+        </tr>
+      </ng-template>
+
+      <ng-template pTemplate="emptymessage">
+        <tr>
+          <td colspan="7">
+            <div class="empty-state">
+              <span class="empty-state__icon" aria-hidden="true"><i class="pi pi-users"></i></span>
+              <p class="empty-state__title m-0">{{ 'agents.emptyTitle' | transloco }}</p>
+              <p class="empty-state__hint m-0 mt-1">{{ 'agents.emptyHint' | transloco }}</p>
+            </div>
+          </td>
+        </tr>
+      </ng-template>
+    </p-table>
+  </div>
+
+  <p-dialog
+    [(visible)]="statusConfirmVisible"
+    [modal]="true"
+    [closable]="true"
+    [draggable]="false"
+    [showHeader]="false"
+    [style]="{ width: 'min(96vw, 42rem)' }"
+    styleClass="agent-status-confirm-dialog"
+    appendTo="body"
+    (onHide)="cancelStatusConfirm()">
+    @if (pendingStatusAgent; as agent) {
+      <div
+        class="status-confirm"
+        [class.status-confirm--activate]="pendingStatusActivate"
+        [class.status-confirm--deactivate]="!pendingStatusActivate">
+        <div class="status-confirm__top">
+          <button
+            type="button"
+            class="status-confirm__close"
+            [attr.aria-label]="'common.close' | transloco"
+            [disabled]="togglingStatusId() !== null"
+            (click)="cancelStatusConfirm()">
+            <i class="pi pi-times" aria-hidden="true"></i>
+          </button>
+          <div
+            class="status-confirm__icon-wrap"
+            [class.status-confirm__icon-wrap--warn]="!pendingStatusActivate"
+            [class.status-confirm__icon-wrap--ok]="pendingStatusActivate">
+            <i
+              class="pi"
+              [class.pi-ban]="!pendingStatusActivate"
+              [class.pi-check-circle]="pendingStatusActivate"
+              aria-hidden="true"></i>
+          </div>
+          <h2 class="status-confirm__title">{{ statusConfirmTitle() }}</h2>
+          <p class="status-confirm__lead">{{ statusConfirmLead() }}</p>
+        </div>
+
+        <div class="status-confirm__card">
+          <div class="status-confirm__avatar">
+            {{ statusConfirmAgentLabel().charAt(0) | uppercase }}
+          </div>
+          <div class="status-confirm__details">
+            <span class="status-confirm__name">{{ statusConfirmAgentLabel() }}</span>
+            <span class="status-confirm__meta">
+              <i class="pi pi-user" aria-hidden="true"></i>
+              {{ agent.userName || ('common.emDash' | transloco) }}
+            </span>
+            <span class="status-confirm__meta">
+              <i class="pi pi-id-card" aria-hidden="true"></i>
+              {{ registrationMeta(agent.userRegistrationNumber) }}
+            </span>
+            <span class="status-confirm__meta">
+              <i class="pi pi-briefcase" aria-hidden="true"></i>
+              {{ roleLabel(agent.role) }}
+              @if (directionLabel(agent) !== emDash()) {
+                <span class="status-confirm__meta-sep">·</span>
+                {{ directionLabel(agent) }}
+              }
+            </span>
+          </div>
+        </div>
+
+        @if (!pendingStatusActivate) {
+          <ul class="status-confirm__notes">
+            <li>{{ 'agents.deactivateNotes1' | transloco }}</li>
+            <li>{{ 'agents.deactivateNotes2' | transloco }}</li>
+            <li>{{ 'agents.deactivateNotes3' | transloco }}</li>
+          </ul>
+        } @else {
+          <ul class="status-confirm__notes status-confirm__notes--ok">
+            <li>{{ 'agents.reactivateNotes1' | transloco }}</li>
+            <li>{{ 'agents.reactivateNotes2' | transloco }}</li>
+          </ul>
+        }
+      </div>
+    }
+
+    <ng-template pTemplate="footer">
+      <div class="status-confirm__footer">
+        <button
+          pButton
+          pRipple
+          type="button"
+          [label]="'common.cancel' | transloco"
+          icon="pi pi-times"
+          class="status-confirm__btn-cancel"
+          [disabled]="togglingStatusId() !== null"
+          (click)="cancelStatusConfirm()"></button>
+        <button
+          pButton
+          pRipple
+          type="button"
+          [label]="pendingStatusActivate ? ('agents.reactivateAccount' | transloco) : ('agents.deactivateAccount' | transloco)"
+          [icon]="pendingStatusActivate ? 'pi pi-check' : 'pi pi-ban'"
+          class="status-confirm__btn-confirm"
+          [class.status-confirm__btn-confirm--warn]="!pendingStatusActivate"
+          [class.status-confirm__btn-confirm--ok]="pendingStatusActivate"
+          [loading]="togglingStatusId() !== null"
+          [disabled]="togglingStatusId() !== null"
+          (click)="confirmStatusChange()"></button>
+      </div>
+    </ng-template>
+  </p-dialog>
+
+  <p-dialog
+    [(visible)]="passwordResetDialogVisible"
+    [modal]="true"
+    [closable]="true"
+    [draggable]="false"
+    [resizable]="false"
+    [header]="'agents.approvePasswordResetDialogTitle' | transloco"
+    [style]="{ width: 'min(96vw, 40rem)' }"
+    styleClass="modern-dialog alertes-dialog-portal alertes-confirm-dialog alertes-confirm-dialog--password-reset"
+    appendTo="body"
+    [blockScroll]="true"
+    [dismissableMask]="true"
+    [closeOnEscape]="true"
+    (onHide)="cancelPasswordReset()">
+    @if (pendingPasswordResetAgent; as agent) {
+      <div class="alertes-confirm-dialog__wrap">
+        <div class="alertes-confirm-dialog__shell">
+          <div class="alertes-confirm-dialog__icon-wrap" aria-hidden="true">
+            <i class="pi pi-key"></i>
+          </div>
+          <p class="alertes-confirm-dialog__message">
+            {{ 'agents.approvePasswordResetDialogLead' | transloco: { user: agent.userName || agent.id } }}
+          </p>
+          <p class="alertes-confirm-dialog__hint m-0">
+            {{ 'agents.approvePasswordResetDialogHint' | transloco }}
+          </p>
+        </div>
+        <div class="alertes-confirm-dialog__actions">
+          <button
+            pButton
+            pRipple
+            type="button"
+            [label]="'common.cancel' | transloco"
+            icon="pi pi-times"
+            class="p-button-outlined alertes-confirm-dialog__btn-cancel alertes-confirm-dialog__btn-cancel--danger"
+            [disabled]="resettingPasswordId() !== null"
+            (click)="cancelPasswordReset()"></button>
+          <button
+            pButton
+            pRipple
+            type="button"
+            [label]="'agents.approvePasswordResetConfirm' | transloco"
+            icon="pi pi-check"
+            class="alertes-confirm-dialog__btn-primary"
+            [loading]="resettingPasswordId() !== null"
+            [disabled]="resettingPasswordId() !== null"
+            (click)="confirmPasswordReset()"></button>
+        </div>
+      </div>
+    }
+  </p-dialog>
+</div>

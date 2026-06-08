@@ -1,0 +1,8 @@
+<div class="bordereau-nouveau-page-shell">
+  <p-toast position="top-center" />
+  <app-bordereau-create-form
+    [mettreEnAttente]="mettreEnAttente()"
+    [bordereauId]="bordereauId()"
+    (cancel)="onCancel()"
+    (saved)="onSaved()" />
+</div>

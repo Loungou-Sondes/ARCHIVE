@@ -1,0 +1,5 @@
+# Fin de ligne cohérente (Windows + Linux)
+* text=auto
+
+BACK/mvnw text eol=lf
+*.cmd text eol=crlf

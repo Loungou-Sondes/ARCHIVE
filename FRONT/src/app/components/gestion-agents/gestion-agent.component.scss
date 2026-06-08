@@ -1,0 +1,977 @@
+// Styles du composant agent.
+@import '../../../colors';
+
+.toolbar-actions {
+  .modern-button.toolbar-primary-btn,
+  .p-button.toolbar-secondary-btn {
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .toolbar-secondary-btn {
+    border: 1px solid var(--gray-300, #d1d5db);
+    background: var(--gray-50, #f9fafb);
+    color: var(--gray-800, #1f2937);
+
+    &:hover:enabled {
+      background: var(--gray-100, #f3f4f6);
+      border-color: var(--gray-400, #9ca3af);
+    }
+  }
+}
+
+.agent-form .w-full {
+  width: 100%;
+}
+
+// Conteneur principal.
+:host {
+  display: block;
+  font-family: var(--font-family);
+  background: $gray-100;
+  min-height: 100vh;
+  padding: 1.25rem 1.5rem 2rem;
+  -webkit-font-smoothing: antialiased;
+}
+
+.gestion-agent-page {
+  max-width: 100%;
+  margin: 0 auto;
+  animation: fadeIn 0.3s ease-out;
+}
+
+// ─── Panel unique (toolbar + table) ───────────────────────────
+.agents-panel {
+  padding: 0 !important;
+  overflow: hidden;
+  border-radius: $radius-xl !important;
+  border: 1px solid $gray-200 !important;
+  box-shadow: $shadow-sm !important;
+  background: #fff !important;
+}
+
+.panel-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 1rem 1.5rem;
+  padding: 1.25rem 1.5rem;
+  border-bottom: 1px solid $gray-200;
+  background: #fff;
+}
+
+.panel-toolbar__main {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  min-width: 0;
+}
+
+.panel-toolbar__icon {
+  width: 52px;
+  height: 52px;
+  flex-shrink: 0;
+  font-size: 1.5rem;
+}
+
+.panel-toolbar__title {
+  font-size: clamp(1.5rem, 2.8vw, 1.85rem);
+  font-weight: 800;
+  color: $gray-900;
+  letter-spacing: -0.025em;
+  line-height: 1.15;
+  font-family: var(--heading-font-family);
+}
+
+.panel-toolbar__hint {
+  font-size: 1.05rem;
+  color: $gray-600;
+  font-weight: 500;
+  line-height: 1.4;
+  margin-top: 0.25rem !important;
+}
+
+.panel-toolbar__meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+.meta-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.4rem 0.85rem;
+  border-radius: 999px;
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: $gray-700;
+  background: $gray-100;
+  border: 1px solid $gray-200;
+  white-space: nowrap;
+
+  &--ok {
+    color: #166534;
+    background: #f0fdf4;
+    border-color: #bbf7d0;
+  }
+
+  &--ko {
+    color: #991b1b;
+    background: #fef2f2;
+    border-color: #fecaca;
+  }
+
+  &--warn {
+    color: #b45309;
+    background: #fffbeb;
+    border-color: #fde68a;
+  }
+}
+
+:host ::ng-deep .panel-toolbar__refresh.p-button {
+  margin-left: 0.25rem;
+  min-height: 40px;
+  font-weight: 700 !important;
+  font-size: 0.95rem !important;
+  border-radius: $radius-md !important;
+  color: $gray-800 !important;
+  border-color: $gray-300 !important;
+  background: #fff !important;
+
+  &:hover:enabled {
+    background: $gray-50 !important;
+    border-color: $gray-400 !important;
+  }
+}
+
+// ─── Agent cell ──────────────────────────────────────────────
+.agent-cell {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  min-width: 0;
+}
+
+.agent-cell__avatar {
+  width: 3.35rem;
+  height: 3.35rem;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  background: linear-gradient(135deg, #eef2ff, #e0e7ff);
+  color: #4338ca;
+  font-size: 1rem;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  border: 2px solid #fff;
+  box-shadow: 0 2px 8px rgba(79, 70, 229, 0.15);
+}
+
+.agent-cell__info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  min-width: 0;
+}
+
+.agent-cell__name {
+  font-weight: 700;
+  color: $gray-900;
+  font-size: 1.2rem;
+  line-height: 1.3;
+}
+
+.agent-cell__login {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 1.025rem;
+  color: $gray-600;
+  font-weight: 600;
+
+  i {
+    font-size: 0.85rem;
+  }
+}
+
+.direction-text {
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: $gray-800;
+  line-height: 1.4;
+}
+
+.cell-empty {
+  font-size: 1rem;
+  color: $gray-400;
+  font-weight: 500;
+  font-style: italic;
+}
+
+// ─── Badges ──────────────────────────────────────────────────
+.badge-position {
+  padding: 0.45rem 0.95rem;
+  border-radius: 999px;
+  background: $info-light;
+  color: #1d4ed8;
+  font-size: 0.92rem;
+  font-weight: 700;
+  border: 1px solid rgba(59, 130, 246, 0.2);
+  white-space: nowrap;
+}
+
+.badge-harbor {
+  padding: 0.45rem 0.95rem;
+  border-radius: 999px;
+  background: $warning-light;
+  color: #b45309;
+  font-size: 0.92rem;
+  font-weight: 700;
+  border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
+.badge-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  min-width: 100px;
+  justify-content: center;
+  padding: 0.45rem 1rem;
+  border-radius: 999px;
+  font-size: 0.92rem;
+  font-weight: 700;
+  border: 1px solid transparent;
+}
+
+.badge-status__dot {
+  width: 0.45rem;
+  height: 0.45rem;
+  border-radius: 50%;
+  background: currentColor;
+  flex-shrink: 0;
+}
+
+.badge-password-reset {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.28rem 0.65rem;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #b45309;
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+}
+
+.status-active {
+  background: #dcfce7;
+  color: #166534;
+  border-color: #86efac;
+}
+
+.status-inactive {
+  background: #fee2e2;
+  color: #991b1b;
+  border-color: #fca5a5;
+}
+
+// ─── Action buttons (icon only) ──────────────────────────────
+.row-actions {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  gap: 0.55rem;
+}
+
+:host ::ng-deep .icon-action.p-button {
+  width: 2.85rem !important;
+  height: 2.85rem !important;
+  min-width: 2.85rem !important;
+  padding: 0 !important;
+  border-radius: $radius-lg !important;
+  border: 1px solid transparent !important;
+  transition: transform 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
+
+  .p-button-icon {
+    font-size: 1.1rem;
+  }
+
+  &:hover:enabled {
+    transform: translateY(-1px);
+    box-shadow: $shadow-sm;
+  }
+}
+
+:host ::ng-deep .icon-action--view.p-button {
+  background: #eff6ff !important;
+  color: #2563eb !important;
+  border-color: #bfdbfe !important;
+
+  &:hover:enabled {
+    background: #dbeafe !important;
+    color: #1d4ed8 !important;
+  }
+}
+
+:host ::ng-deep .icon-action--deactivate.p-button {
+  background: #fef2f2 !important;
+  color: #dc2626 !important;
+  border-color: #fecaca !important;
+
+  &:hover:enabled {
+    background: #fee2e2 !important;
+    color: #b91c1c !important;
+  }
+}
+
+:host ::ng-deep .icon-action--activate.p-button {
+  background: #f0fdf4 !important;
+  color: #16a34a !important;
+  border-color: #bbf7d0 !important;
+
+  &:hover:enabled {
+    background: #dcfce7 !important;
+    color: #15803d !important;
+  }
+}
+
+// ─── Empty state ─────────────────────────────────────────────
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem 1.5rem;
+  text-align: center;
+}
+
+.empty-state__icon {
+  width: 3.5rem;
+  height: 3.5rem;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: $gray-100;
+  color: $gray-400;
+  font-size: 1.35rem;
+  margin-bottom: 0.85rem;
+}
+
+.empty-state__title {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: $gray-800;
+}
+
+.empty-state__hint {
+  font-size: 0.9rem;
+  color: $gray-500;
+  max-width: 22rem;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.badge-job {
+  padding: 0.3rem 0.75rem;
+  border-radius: 20px;
+  background: $teal-10;
+  color: $accent-teal;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+// Boutons d'action legacy (dialogs).
+.action-btn-legacy {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: $radius-lg;
+  transition: all 0.2s ease;
+  border: 1px solid transparent;
+  cursor: pointer;
+  background: $gray-100;
+  color: $gray-600;
+
+  &:hover {
+    transform: translateY(-2px);
+    background: var(--gray-50);
+    box-shadow: $shadow-sm;
+  }
+
+  &.view-btn:hover {
+    color: $primary;
+    border-color: $primary;
+  }
+
+  &.edit-btn:hover {
+    color: $accent-teal;
+    border-color: $accent-teal;
+  }
+
+  &.delete-btn:hover {
+    color: $danger;
+    border-color: $danger;
+  }
+
+  &.deactivate-btn:hover {
+    color: #c2410c;
+    border-color: #fb923c;
+  }
+
+  &.activate-btn:hover {
+    color: #166534;
+    border-color: #4ade80;
+  }
+}
+
+// Bandeau d'information de la fenêtre.
+.dialog-header-info {
+  background: $info-light;
+  padding: 1rem;
+  border-radius: $radius-lg;
+  margin-bottom: 1.5rem;
+  color: $primary-dark;
+  font-size: 0.9rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  border-left: 4px solid $primary;
+}
+
+// Sections du formulaire.
+.form-section {
+  background: $gray-50;
+  border-radius: $radius-lg;
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+  border: 1px solid $gray-200;
+
+  .section-title {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: $gray-800;
+    margin: 0 0 1.5rem 0;
+    padding-bottom: 0.75rem;
+    border-bottom: 2px solid $gray-200;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+
+    i {
+      color: $primary;
+    }
+  }
+}
+
+.field-label {
+  display: block;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: $gray-500;
+  margin-bottom: 0.5rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+// Messages d'erreur.
+.error-message {
+  margin-top: 0.25rem;
+  font-size: 0.8rem;
+  color: $danger;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+// Contenu de la fenêtre de confirmation.
+.confirm-dialog {
+  .dialog-content {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem;
+
+    .icon-wrapper {
+      width: 48px;
+      height: 48px;
+      background: $danger-light;
+      border-radius: $radius-lg;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+
+      i {
+        color: $danger;
+        font-size: 1.5rem;
+      }
+    }
+
+    .text {
+      h5 {
+        font-size: 1rem;
+        font-weight: 600;
+        color: $gray-900;
+        margin: 0 0 0.25rem 0;
+      }
+
+      p {
+        font-size: 0.95rem;
+        color: $gray-600;
+        margin: 0;
+      }
+    }
+  }
+}
+
+.confirm-dialog-body {
+  padding: 0.2rem 0;
+
+  .text-sm {
+    margin-top: 0.2rem !important;
+    line-height: 1.35;
+  }
+}
+
+// Squelette de chargement.
+.loading-skeleton {
+  background: linear-gradient(90deg, $gray-200 25%, $gray-100 50%, $gray-200 75%);
+  background-size: 1000px 100%;
+  animation: shimmer 2s infinite;
+  border-radius: $radius-md;
+  height: 20px;
+  margin: 0.5rem 0;
+}
+
+@keyframes shimmer {
+  0%   { background-position: -1000px 0; }
+  100% { background-position:  1000px 0; }
+}
+
+// Bouton d'enregistrement.
+// Le dégradé de succès global est utilisé.
+.modern-save-btn {
+  background: $gradient-success !important;
+  border: none !important;
+  border-radius: $radius-lg !important;
+  padding: 0.75rem 2rem !important;
+  color: white !important;
+  font-weight: 700 !important;
+  transition: all 0.3s ease !important;
+  box-shadow: 0 4px 12px $primary-08 !important;
+
+  &:hover:not(:disabled) {
+    transform: translateY(-2px) !important;
+    box-shadow: 0 6px 15px $primary-08 !important;
+    filter: brightness(1.1);
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    background: $gray-400 !important;
+    cursor: not-allowed;
+    box-shadow: none !important;
+  }
+}
+
+// Ajustements des panneaux.
+// Les styles globaux sont adaptés au module agent.
+.modern-panel {
+  margin-top: 1.5rem;
+
+  ::ng-deep {
+    .p-panel {
+      border-radius: $radius-lg;
+      overflow: hidden;
+      border: 1px solid $gray-200;
+
+      .p-panel-header {
+        background: $gray-50;
+        padding: 1rem 1.5rem;
+        border-bottom: 1px solid $gray-200;
+
+        .p-panel-title {
+          font-weight: 700;
+          color: $gray-800;
+        }
+
+        .p-panel-header-icon {
+          width: 32px;
+          height: 32px;
+          border-radius: $radius-md;
+
+          &:hover {
+            background: $gray-200;
+            color: $gray-900;
+          }
+        }
+      }
+
+      .p-panel-content {
+        border: 1px solid $gray-200;
+        border-top: none;
+        border-radius: 0 0 $radius-lg $radius-lg;
+        padding: 1.5rem;
+        background: var(--gray-50);
+      }
+    }
+  }
+}
+
+// Forcer fond clair et texte lisible (même logique que la page profil).
+:host ::ng-deep .gestion-agent-page {
+  .modern-card.card,
+  .modern-card {
+    background: #ffffff !important;
+    color: #0f172a !important;
+    border: 1px solid #e5e7eb !important;
+  }
+
+  .matricule-badge {
+    display: inline-flex;
+    padding: 0.45rem 0.95rem;
+    border-radius: 999px;
+    color: #3730a3 !important;
+    background: #eef2ff !important;
+    font-size: 0.95rem;
+    font-weight: 800;
+    border: 1px solid #c7d2fe;
+    letter-spacing: 0.02em;
+  }
+
+  .p-datatable.agents-table.modern-table,
+  .p-datatable.modern-table {
+    .p-datatable-thead > tr > th {
+      background: #fafafa !important;
+      color: #52525b !important;
+      font-weight: 700 !important;
+      font-size: 0.95rem !important;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      border-color: #e4e4e7 !important;
+      padding: 1.1rem 1.35rem !important;
+    }
+
+    .p-datatable-tbody > tr > td {
+      background: #ffffff !important;
+      color: #18181b !important;
+      font-size: 1.125rem !important;
+      border-color: #f4f4f5 !important;
+      padding: 1.25rem 1.35rem !important;
+      vertical-align: middle !important;
+      line-height: 1.45 !important;
+    }
+
+    .p-datatable-tbody > tr {
+      transition: background 0.15s ease;
+    }
+
+    .p-datatable-tbody > tr:hover > td {
+      background: #fafafa !important;
+    }
+
+    .p-datatable-tbody > tr.p-row-odd > td {
+      background: #fcfcfc !important;
+    }
+
+    .p-datatable-tbody > tr.p-row-odd:hover > td {
+      background: #f4f4f5 !important;
+    }
+
+    .col-agent {
+      min-width: 14rem;
+    }
+
+    .col-direction {
+      min-width: 14rem;
+      max-width: 22rem;
+    }
+
+    .col-actions {
+      min-width: 7rem;
+      width: 7rem;
+    }
+
+    .matricule-badge,
+    .badge-position,
+    .badge-harbor,
+    .badge-status {
+      font-size: 0.975rem !important;
+      padding: 0.5rem 1rem !important;
+    }
+  }
+
+  .p-paginator {
+    background: #fafafa !important;
+    color: #18181b !important;
+    border-color: #e4e4e7 !important;
+    padding: 0.85rem 1.25rem !important;
+    border-top: 1px solid #e4e4e7 !important;
+
+    .p-paginator-element,
+    .p-paginator-current,
+    .p-dropdown {
+      color: #18181b !important;
+      font-size: 1rem !important;
+    }
+  }
+
+  .p-inputtext {
+    border-radius: 0.5rem !important;
+    border-color: #d1d5db !important;
+    background: #ffffff !important;
+    color: #0f172a !important;
+    -webkit-text-fill-color: #0f172a !important;
+  }
+
+  .p-password .p-password-input,
+  .p-password input {
+    background: #ffffff !important;
+    color: #111827 !important;
+    -webkit-text-fill-color: #111827 !important;
+    border-color: #d1d5db !important;
+  }
+
+  .p-select,
+  p-select .p-select {
+    --p-select-background: #ffffff;
+    background: #ffffff !important;
+    border-color: #d1d5db !important;
+
+    .p-select-label,
+    .p-select-dropdown,
+    .p-select-clear-icon,
+    span.p-select-label {
+      color: #111827 !important;
+    }
+
+    .p-select-label.p-placeholder {
+      color: #6b7280 !important;
+    }
+  }
+
+  .p-select-open,
+  .p-select:not(.p-disabled):hover {
+    border-color: #94a3b8 !important;
+  }
+
+  .toolbar-primary-btn.p-button.modern-button,
+  .modern-button.p-button:not(.p-button-text) {
+    background: #ffffff !important;
+    color: #111827 !important;
+    border: 1px solid #d1d5db !important;
+    box-shadow: none !important;
+
+    .p-button-icon,
+    .p-button-label {
+      color: #111827 !important;
+    }
+
+    &:hover:enabled {
+      background: #f8fafc !important;
+      border-color: #9ca3af !important;
+    }
+  }
+
+  .toolbar-secondary-btn.p-button {
+    background: #ffffff !important;
+    color: #111827 !important;
+    border: 1px solid #d1d5db !important;
+
+    .p-button-icon,
+    .p-button-label {
+      color: #111827 !important;
+    }
+
+    &:hover:enabled {
+      background: #f8fafc !important;
+    }
+  }
+
+  .modern-cancel-btn.p-button {
+    background: #ffffff !important;
+    color: #111827 !important;
+    border: 1px solid #d1d5db !important;
+
+    .p-button-label,
+    .p-button-icon {
+      color: #111827 !important;
+    }
+  }
+
+  .modern-dialog {
+    .p-dialog-header {
+      background: #ffffff !important;
+      color: #111827 !important;
+    }
+
+    .p-dialog-content {
+      background: #ffffff !important;
+      color: #0f172a !important;
+    }
+
+    .p-dialog-footer {
+      background: #f8fafc !important;
+      border-top: 1px solid #e5e7eb !important;
+    }
+  }
+
+  .p-button.p-button-text.modern-icon-btn {
+    color: #374151 !important;
+
+    .p-button-icon {
+      color: inherit !important;
+    }
+
+    &:hover:enabled {
+      background: #f3f4f6 !important;
+      color: #111827 !important;
+    }
+
+    &.view-btn:hover:enabled {
+      color: #2563eb !important;
+      background: #eff6ff !important;
+    }
+  }
+
+  input.p-inputtext:-webkit-autofill,
+  input.p-inputtext:-webkit-autofill:hover,
+  input.p-inputtext:-webkit-autofill:focus {
+    -webkit-text-fill-color: #0f172a !important;
+    -webkit-box-shadow: 0 0 0 1000px #ffffff inset !important;
+    box-shadow: 0 0 0 1000px #ffffff inset !important;
+  }
+}
+
+// p-dialog appendTo="body" : ce bloc n’est PAS sous .gestion-agent-page (sinon les champs restent « noirs »).
+:host ::ng-deep .agent-manage-dialog.p-dialog {
+  color: #0f172a !important;
+
+  .p-dialog-header,
+  .p-dialog-title {
+    background: #ffffff !important;
+    color: #111827 !important;
+  }
+
+  .p-dialog-content {
+    background: #ffffff !important;
+    color: #0f172a !important;
+  }
+
+  .p-dialog-footer {
+    background: #f8fafc !important;
+    border-top: 1px solid #e5e7eb !important;
+  }
+
+  .field-label {
+    color: #374151 !important;
+  }
+
+  .p-inputtext,
+  input.p-inputtext {
+    background: #ffffff !important;
+    color: #111827 !important;
+    -webkit-text-fill-color: #111827 !important;
+    border-color: #d1d5db !important;
+  }
+
+  .p-password,
+  .p-password .p-inputtext {
+    background: #ffffff !important;
+    color: #111827 !important;
+    -webkit-text-fill-color: #111827 !important;
+  }
+
+  .p-select,
+  p-select .p-select {
+    background: #ffffff !important;
+    border: 1px solid #d1d5db !important;
+    color: #111827 !important;
+
+    .p-select-label,
+    span.p-select-label,
+    .p-select-dropdown,
+    .p-select-clear-icon,
+    .p-select-dropdown-icon {
+      color: #111827 !important;
+    }
+
+    .p-select-label.p-placeholder,
+    .p-placeholder {
+      color: #6b7280 !important;
+    }
+  }
+
+  .modern-button.p-button,
+  .modern-cancel-btn.p-button {
+    background: #ffffff !important;
+    color: #111827 !important;
+    border: 1px solid #d1d5db !important;
+
+    .p-button-label,
+    .p-button-icon {
+      color: #111827 !important;
+    }
+  }
+}
+
+// Liste déroulante (appendTo body).
+:host ::ng-deep .agent-select-panel-light {
+  background: #ffffff !important;
+  border: 1px solid #e5e7eb !important;
+  color: #111827 !important;
+
+  .p-select-option,
+  .p-select-option-label {
+    color: #111827 !important;
+  }
+
+  .p-select-option.p-focus,
+  .p-select-option:not(.p-select-option-selected):hover {
+    background: #f3f4f6 !important;
+    color: #111827 !important;
+  }
+
+  .p-inputtext {
+    color: #111827 !important;
+    -webkit-text-fill-color: #111827 !important;
+  }
+}
+
+// Adaptation responsive.
+@media screen and (max-width: 768px) {
+  :host {
+    padding: 1rem;
+  }
+
+  .panel-toolbar {
+    padding: 0.85rem 1rem;
+  }
+
+  .panel-toolbar__meta {
+    width: 100%;
+  }
+
+  .form-section {
+    padding: 1rem;
+  }
+}

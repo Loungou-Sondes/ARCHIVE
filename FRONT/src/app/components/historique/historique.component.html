@@ -1,0 +1,170 @@
+<div class="historique-host">
+  <p-toast position="top-center" />
+  <app-boite-consultation-dialog />
+  <div class="historique-page">
+    <section class="card modern-card search-card">
+      <div class="flex flex-column md:flex-row md:align-items-center justify-content-between gap-3 mb-3">
+        <div class="flex align-items-center gap-3">
+          <div class="header-icon-container">
+            <i class="fa-solid fa-clock-rotate-left" aria-hidden="true"></i>
+          </div>
+          <div>
+            <h4 class="card-title m-0">{{ 'historique.title' | transloco }}</h4>
+            <p class="card-subtitle m-0 mt-1">{{ 'historique.subtitle' | transloco }}</p>
+          </div>
+        </div>
+        <div class="flex gap-2 align-items-center justify-content-end toolbar-icon-group">
+          <button
+            pButton
+            pRipple
+            type="button"
+            icon="pi pi-times"
+            class="p-button-rounded p-button-text icon-circle-btn"
+            [pTooltip]="'historique.reset' | transloco"
+            tooltipPosition="bottom"
+            (click)="clearSearch()"></button>
+        </div>
+      </div>
+
+      <div class="type-filters mb-3">
+        @for (opt of typeFilterOptions; track opt.value) {
+          <button
+            type="button"
+            class="type-filter-btn"
+            [class.type-filter-btn--active]="typeFilter() === opt.value"
+            (click)="setTypeFilter(opt.value)">
+            {{ opt.labelKey | transloco }}
+          </button>
+        }
+      </div>
+
+      <div class="search-row flex-1">
+        <i class="pi pi-search" aria-hidden="true"></i>
+        <input
+          pInputText
+          type="search"
+          class="w-full historique-input"
+          [placeholder]="'historique.searchPlaceholder' | transloco"
+          [ngModel]="searchText()"
+          (ngModelChange)="searchText.set($event); onSearchValueChange()" />
+      </div>
+    </section>
+
+    <section class="card modern-card groups-card">
+      <div class="flex align-items-center justify-content-between mb-4 flex-wrap gap-3">
+        <div class="flex align-items-center gap-2 flex-wrap">
+          <div class="header-icon-container header-icon-container--muted">
+            <i class="fa-solid fa-box-archive" aria-hidden="true"></i>
+          </div>
+          <div>
+            <h4 class="card-title m-0">{{ 'historique.groupsTitle' | transloco }}</h4>
+            <span class="badge-count">{{ countLabel() }}</span>
+          </div>
+        </div>
+        <div class="flex gap-2 align-items-center toolbar-icon-group">
+          <button
+            pButton
+            pRipple
+            type="button"
+            icon="pi pi-refresh"
+            class="p-button-rounded p-button-text icon-circle-btn"
+            [pTooltip]="'historique.refresh' | transloco"
+            tooltipPosition="bottom"
+            (click)="load()"></button>
+        </div>
+      </div>
+
+      @if (loading()) {
+        <div class="historique-loading">
+          <p-progressSpinner strokeWidth="4" [ariaLabel]="'common.loadingAria' | transloco" />
+          <span>{{ 'historique.loading' | transloco }}</span>
+        </div>
+      } @else if (groups().length === 0) {
+        <p class="empty-hint m-0">
+          <i class="pi pi-inbox mr-2"></i>
+          {{ 'historique.empty' | transloco }}
+        </p>
+      } @else {
+        <div class="bordereau-groups">
+          @for (group of groups(); track group.bordereauId) {
+            <article class="bordereau-group">
+              <header class="bordereau-group__head">
+                <div class="bordereau-group__title-block">
+                  <h3 class="bordereau-group__numero">{{ group.numeroBordereau }}</h3>
+                  <p class="bordereau-group__meta">
+                    <span>{{ 'common.transferredOn' | transloco }} {{ formatDate(group.dateTransfert) }}</span>
+                    @if (group.directionLabel) {
+                      <span class="meta-sep">·</span>
+                      <span>{{ group.directionLabel }}</span>
+                    }
+                    <span class="meta-sep">·</span>
+                    <span>{{ group.agentUserName }}</span>
+                    <span class="meta-sep">·</span>
+                    <span class="bordereau-group__count">{{ boitesLabel(group.boitesCount) }}</span>
+                  </p>
+                </div>
+                <button
+                  pButton
+                  pRipple
+                  type="button"
+                  icon="pi pi-eye"
+                  [label]="'historique.viewSlip' | transloco"
+                  class="p-button-outlined p-button-sm bordereau-group__btn"
+                  (click)="openBordereau(group.bordereauId)"></button>
+              </header>
+
+              <ul class="boite-list" [attr.aria-label]="'historique.boxesOfSlipAria' | transloco: { numero: group.numeroBordereau }">
+                @for (boite of group.boites; track boite.boiteId) {
+                  <li class="boite-list__item">
+                    <div class="boite-list__main">
+                      <span class="boite-list__titre">{{ boite.boiteTitre }}</span>
+                      <span class="boite-list__type">{{ boite.documentTypeTitle }}</span>
+                      @if (boite.regleReference) {
+                        <span class="boite-list__extra">{{ 'historique.ruleRef' | transloco: { reference: boite.regleReference } }}</span>
+                      }
+                    </div>
+                    <div class="boite-list__decision">
+                      @if (isTransfert(boite.typeEtat)) {
+                        <p-tag severity="info" [value]="typeEtatLabel(boite.typeEtat)" [rounded]="true"></p-tag>
+                      } @else {
+                        <p-tag severity="danger" [value]="typeEtatLabel(boite.typeEtat)" [rounded]="true"></p-tag>
+                      }
+                      <span class="boite-list__date">{{ 'common.dateOn' | transloco }} {{ formatDate(boite.dateEtat) }}</span>
+                    </div>
+                    <div class="boite-list__actions">
+                      <button
+                        pButton
+                        pRipple
+                        type="button"
+                        icon="pi pi-eye"
+                        [label]="'common.consult' | transloco"
+                        class="p-button-outlined p-button-sm boite-list__consult-btn"
+                        [pTooltip]="'historique.boxDetailTooltip' | transloco"
+                        tooltipPosition="top"
+                        (click)="openBoiteConsult(boite.boiteId); $event.stopPropagation()"></button>
+                    </div>
+                    @if (boite.dernierEmplacement) {
+                      <span class="boite-list__empl">{{ 'common.locationShort' | transloco }} {{ boite.dernierEmplacement }}</span>
+                    }
+                  </li>
+                }
+              </ul>
+            </article>
+          }
+        </div>
+
+        @if (totalBordereaux() > pageSize || page > 0) {
+          <p-paginator
+            class="historique-paginator"
+            [rows]="pageSize"
+            [totalRecords]="totalBordereaux()"
+            [first]="page * pageSize"
+            [rowsPerPageOptions]="[5, 10, 15, 20]"
+            (onPageChange)="onPageChange($event)"
+            [currentPageReportTemplate]="pageReportTemplate()"
+            [showCurrentPageReport]="true" />
+        }
+      }
+    </section>
+  </div>
+</div>

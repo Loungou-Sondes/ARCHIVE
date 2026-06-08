@@ -1,0 +1,433 @@
+<section class="agent-view-page">
+  @if (loading()) {
+    <div class="card modern-card state-card">
+      <p class="state-msg muted m-0">
+        <i class="pi pi-spinner mr-2 loading-spin-icon" aria-hidden="true"></i>{{ 'common.loading' | transloco }}
+      </p>
+    </div>
+  } @else if (error()) {
+    <div class="card modern-card state-card state-card--error">
+      <p class="error-text m-0 mb-3">{{ error() }}</p>
+      <button
+        pButton
+        pRipple
+        [label]="'common.back' | transloco"
+        icon="pi pi-times"
+        class="p-button-secondary"
+        (click)="backToList()"></button>
+    </div>
+  } @else if (agent(); as a) {
+    <header class="view-hero">
+      <div class="view-hero__backdrop" aria-hidden="true"></div>
+      <div class="view-hero__glow" aria-hidden="true"></div>
+      <div class="view-hero__content">
+        <button
+          pButton
+          pRipple
+          type="button"
+          icon="pi pi-arrow-left"
+          [label]="'agents.backToList' | transloco"
+          class="view-hero__back p-button-secondary"
+          (click)="backToList()"></button>
+
+        <div class="view-hero__main">
+          <div class="view-hero__avatar" aria-hidden="true">
+            <span>{{ agentInitials(a) }}</span>
+          </div>
+          <div class="view-hero__identity">
+            @if (hasText(displayFullName(a))) {
+              <h1 class="view-hero__name m-0">{{ displayFullName(a) }}</h1>
+            }
+            <div class="view-hero__meta">
+              @if (hasText(a.userName)) {
+                <span class="view-hero__login">
+                  <i class="pi pi-user" aria-hidden="true"></i>
+                  {{ text(a.userName) }}
+                </span>
+              }
+              @if (hasText(a.userRegistrationNumber)) {
+                <span class="view-hero__chip view-hero__chip--mat">
+                  <i class="pi pi-id-card" aria-hidden="true"></i>
+                  {{ text(a.userRegistrationNumber) }}
+                </span>
+              }
+              @if (hasStatus(a)) {
+                <span
+                  class="view-hero__chip"
+                  [class.view-hero__chip--active]="statusIsActive(a)"
+                  [class.view-hero__chip--inactive]="!statusIsActive(a)">
+                  <span class="view-hero__dot" aria-hidden="true"></span>
+                  {{ statusDisplay(a) }}
+                </span>
+              }
+            </div>
+          </div>
+        </div>
+
+        @if (hasText(a.directionId) || hasText(a.role) || hasText(a.port)) {
+          <div class="view-hero__tags">
+            @if (hasText(a.directionId)) {
+              <span class="view-hero__tag">
+                <i class="pi pi-building" aria-hidden="true"></i>
+                {{ directionLabel(a) }}
+              </span>
+            }
+            @if (hasText(a.role)) {
+              <span class="view-hero__tag">
+                <i class="pi pi-shield" aria-hidden="true"></i>
+                {{ roleDisplay(a.role) }}
+              </span>
+            }
+            @if (hasText(a.port)) {
+              <span class="view-hero__tag">
+                <i class="pi pi-map-marker" aria-hidden="true"></i>
+                {{ text(a.port) }}
+              </span>
+            }
+          </div>
+        }
+      </div>
+    </header>
+
+    <div class="grid view-body">
+      <div class="col-12 xl:col-8">
+        <div class="sections-stack">
+          @if (showIdentitySection(a)) {
+            <article class="section-card section-card--identity">
+              <header class="section-card__head">
+                <span class="section-card__icon" aria-hidden="true"><i class="pi pi-id-card"></i></span>
+                <div>
+                  <h2 class="section-card__title m-0">{{ 'agents.identity' | transloco }}</h2>
+                  <p class="section-card__subtitle m-0">{{ 'agents.identitySubtitle' | transloco }}</p>
+                </div>
+              </header>
+              <div class="info-grid">
+                @if (hasText(a.userRegistrationNumber)) {
+                  <div class="info-tile info-tile--highlight">
+                    <span class="info-tile__icon" aria-hidden="true"><i class="pi pi-hashtag"></i></span>
+                    <div class="info-tile__body">
+                      <span class="info-tile__label">{{ 'agents.colMatricule' | transloco }}</span>
+                      <span class="info-tile__value">{{ text(a.userRegistrationNumber) }}</span>
+                    </div>
+                  </div>
+                }
+                @if (hasText(a.lastName)) {
+                  <div class="info-tile">
+                    <span class="info-tile__icon" aria-hidden="true"><i class="pi pi-user"></i></span>
+                    <div class="info-tile__body">
+                      <span class="info-tile__label">{{ 'agents.lastName' | transloco }}</span>
+                      <span class="info-tile__value">{{ text(a.lastName) }}</span>
+                    </div>
+                  </div>
+                }
+                @if (hasText(a.firstName)) {
+                  <div class="info-tile">
+                    <span class="info-tile__icon" aria-hidden="true"><i class="pi pi-user"></i></span>
+                    <div class="info-tile__body">
+                      <span class="info-tile__label">{{ 'agents.firstName' | transloco }}</span>
+                      <span class="info-tile__value">{{ text(a.firstName) }}</span>
+                    </div>
+                  </div>
+                }
+                @if (hasText(a.cin)) {
+                  <div class="info-tile">
+                    <span class="info-tile__icon" aria-hidden="true"><i class="pi pi-credit-card"></i></span>
+                    <div class="info-tile__body">
+                      <span class="info-tile__label">{{ 'agents.cin' | transloco }}</span>
+                      <span class="info-tile__value">{{ text(a.cin) }}</span>
+                    </div>
+                  </div>
+                }
+                @if (hasGender(a.gender)) {
+                  <div class="info-tile">
+                    <span class="info-tile__icon" aria-hidden="true"><i class="pi pi-users"></i></span>
+                    <div class="info-tile__body">
+                      <span class="info-tile__label">{{ 'agents.gender' | transloco }}</span>
+                      <span class="info-tile__value">{{ genderLabel(a.gender!) }}</span>
+                    </div>
+                  </div>
+                }
+              </div>
+            </article>
+          }
+
+          @if (showAccountSection(a)) {
+            <article class="section-card section-card--account">
+              <header class="section-card__head">
+                <span class="section-card__icon" aria-hidden="true"><i class="pi pi-at"></i></span>
+                <div>
+                  <h2 class="section-card__title m-0">{{ 'agents.accountContact' | transloco }}</h2>
+                  <p class="section-card__subtitle m-0">{{ 'agents.accountContactSubtitle' | transloco }}</p>
+                </div>
+              </header>
+              <div class="info-grid">
+                @if (hasText(a.userName)) {
+                  <div class="info-tile">
+                    <span class="info-tile__icon" aria-hidden="true"><i class="pi pi-sign-in"></i></span>
+                    <div class="info-tile__body">
+                      <span class="info-tile__label">{{ 'agents.login' | transloco }}</span>
+                      <span class="info-tile__value">{{ text(a.userName) }}</span>
+                    </div>
+                  </div>
+                }
+                @if (hasText(a.email)) {
+                  <div class="info-tile info-tile--wide">
+                    <span class="info-tile__icon" aria-hidden="true"><i class="pi pi-envelope"></i></span>
+                    <div class="info-tile__body">
+                      <span class="info-tile__label">{{ 'profile.email' | transloco }}</span>
+                      <span class="info-tile__value info-tile__value--link">{{ text(a.email) }}</span>
+                    </div>
+                  </div>
+                }
+                @if (hasText(a.phoneNumber)) {
+                  <div class="info-tile">
+                    <span class="info-tile__icon" aria-hidden="true"><i class="pi pi-phone"></i></span>
+                    <div class="info-tile__body">
+                      <span class="info-tile__label">{{ 'profile.phoneNumber' | transloco }}</span>
+                      <span class="info-tile__value">{{ text(a.phoneNumber) }}</span>
+                    </div>
+                  </div>
+                }
+                @if (hasText(a.role)) {
+                  <div class="info-tile">
+                    <span class="info-tile__icon" aria-hidden="true"><i class="pi pi-shield"></i></span>
+                    <div class="info-tile__body">
+                      <span class="info-tile__label">{{ 'agents.colRole' | transloco }}</span>
+                      <span class="info-tile__value">
+                        <span class="pill pill-role">{{ roleDisplay(a.role) }}</span>
+                      </span>
+                    </div>
+                  </div>
+                }
+              </div>
+            </article>
+          }
+
+          @if (showAffectationSection(a)) {
+            <article class="section-card section-card--work">
+              <header class="section-card__head">
+                <span class="section-card__icon" aria-hidden="true"><i class="pi pi-briefcase"></i></span>
+                <div>
+                  <h2 class="section-card__title m-0">{{ 'agents.assignment' | transloco }}</h2>
+                  <p class="section-card__subtitle m-0">{{ 'agents.assignmentSubtitle' | transloco }}</p>
+                </div>
+              </header>
+              <div class="info-grid">
+                @if (hasText(a.port)) {
+                  <div class="info-tile">
+                    <span class="info-tile__icon" aria-hidden="true"><i class="pi pi-map-marker"></i></span>
+                    <div class="info-tile__body">
+                      <span class="info-tile__label">{{ 'agents.colPort' | transloco }}</span>
+                      <span class="info-tile__value">
+                        <span class="pill pill-harbor">{{ text(a.port) }}</span>
+                      </span>
+                    </div>
+                  </div>
+                }
+                @if (hasText(a.positionId)) {
+                  <div class="info-tile">
+                    <span class="info-tile__icon" aria-hidden="true"><i class="pi pi-sitemap"></i></span>
+                    <div class="info-tile__body">
+                      <span class="info-tile__label">{{ 'agents.position' | transloco }}</span>
+                      <span class="info-tile__value">{{ text(a.positionId) }}</span>
+                    </div>
+                  </div>
+                }
+                @if (hasNum(a.jobId)) {
+                  <div class="info-tile">
+                    <span class="info-tile__icon" aria-hidden="true"><i class="pi pi-wrench"></i></span>
+                    <div class="info-tile__body">
+                      <span class="info-tile__label">{{ 'agents.job' | transloco }}</span>
+                      <span class="info-tile__value">{{ a.jobId }}</span>
+                    </div>
+                  </div>
+                }
+                @if (hasText(a.directionId)) {
+                  <div class="info-tile info-tile--wide">
+                    <span class="info-tile__icon" aria-hidden="true"><i class="pi pi-building"></i></span>
+                    <div class="info-tile__body">
+                      <span class="info-tile__label">{{ 'agents.colDirection' | transloco }}</span>
+                      <span class="info-tile__value">{{ directionLabel(a) }}</span>
+                    </div>
+                  </div>
+                }
+                @if (hasStatus(a)) {
+                  <div class="info-tile">
+                    <span class="info-tile__icon" aria-hidden="true"><i class="pi pi-circle-on"></i></span>
+                    <div class="info-tile__body">
+                      <span class="info-tile__label">{{ 'agents.colStatus' | transloco }}</span>
+                      <span class="info-tile__value">
+                        @if (statusIsActive(a)) {
+                          <span class="pill pill-status pill-status--active">{{ statusDisplay(a) }}</span>
+                        } @else {
+                          <span class="pill pill-status pill-status--inactive">{{ statusDisplay(a) }}</span>
+                        }
+                      </span>
+                    </div>
+                  </div>
+                }
+              </div>
+            </article>
+          }
+
+          @if (showDatesSection(a)) {
+            <article class="section-card section-card--dates">
+              <header class="section-card__head">
+                <span class="section-card__icon" aria-hidden="true"><i class="pi pi-calendar"></i></span>
+                <div>
+                  <h2 class="section-card__title m-0">{{ 'agents.dates' | transloco }}</h2>
+                  <p class="section-card__subtitle m-0">{{ 'agents.datesSubtitle' | transloco }}</p>
+                </div>
+              </header>
+              <div class="info-grid">
+                @if (hasDate(a.birthDate)) {
+                  <div class="info-tile">
+                    <span class="info-tile__icon" aria-hidden="true"><i class="pi pi-gift"></i></span>
+                    <div class="info-tile__body">
+                      <span class="info-tile__label">{{ 'agents.birthDate' | transloco }}</span>
+                      <span class="info-tile__value">{{ formatDate(a.birthDate!) }}</span>
+                    </div>
+                  </div>
+                }
+                @if (hasDate(a.recruitmentDate)) {
+                  <div class="info-tile">
+                    <span class="info-tile__icon" aria-hidden="true"><i class="pi pi-calendar-plus"></i></span>
+                    <div class="info-tile__body">
+                      <span class="info-tile__label">{{ 'agents.recruitmentDate' | transloco }}</span>
+                      <span class="info-tile__value">{{ formatDate(a.recruitmentDate!) }}</span>
+                    </div>
+                  </div>
+                }
+              </div>
+            </article>
+          }
+
+          @if (
+            !showIdentitySection(a) &&
+            !showAccountSection(a) &&
+            !showAffectationSection(a) &&
+            !showDatesSection(a)
+          ) {
+            <article class="section-card section-card--empty">
+              <p class="empty-fiche m-0">
+                <i class="pi pi-info-circle mr-2" aria-hidden="true"></i>
+                {{ 'agents.noData' | transloco }}
+              </p>
+            </article>
+          }
+        </div>
+      </div>
+
+      @if (showSummaryPanel(a)) {
+        <div class="col-12 xl:col-4">
+        <aside class="summary-panel">
+          <div class="summary-panel__card">
+            <h3 class="summary-panel__title m-0">{{ 'agents.summary' | transloco }}</h3>
+            <p class="summary-panel__lead m-0">{{ 'agents.summaryLead' | transloco }}</p>
+
+            <ul class="summary-list">
+              @if (hasText(a.userRegistrationNumber)) {
+                <li class="summary-list__item">
+                  <span class="summary-list__icon summary-list__icon--indigo" aria-hidden="true">
+                    <i class="pi pi-hashtag"></i>
+                  </span>
+                  <div>
+                    <span class="summary-list__label">{{ 'agents.colMatricule' | transloco }}</span>
+                    <span class="summary-list__value">{{ text(a.userRegistrationNumber) }}</span>
+                  </div>
+                </li>
+              }
+              @if (hasText(a.userName)) {
+                <li class="summary-list__item">
+                  <span class="summary-list__icon summary-list__icon--blue" aria-hidden="true">
+                    <i class="pi pi-user"></i>
+                  </span>
+                  <div>
+                    <span class="summary-list__label">{{ 'agents.loginSummary' | transloco }}</span>
+                    <span class="summary-list__value">{{ text(a.userName) }}</span>
+                  </div>
+                </li>
+              }
+              @if (hasText(a.role)) {
+                <li class="summary-list__item">
+                  <span class="summary-list__icon summary-list__icon--violet" aria-hidden="true">
+                    <i class="pi pi-shield"></i>
+                  </span>
+                  <div>
+                    <span class="summary-list__label">{{ 'agents.colRole' | transloco }}</span>
+                    <span class="summary-list__value">{{ roleDisplay(a.role) }}</span>
+                  </div>
+                </li>
+              }
+              @if (hasText(a.directionId)) {
+                <li class="summary-list__item">
+                  <span class="summary-list__icon summary-list__icon--teal" aria-hidden="true">
+                    <i class="pi pi-building"></i>
+                  </span>
+                  <div>
+                    <span class="summary-list__label">{{ 'agents.colDirection' | transloco }}</span>
+                    <span class="summary-list__value">{{ directionLabel(a) }}</span>
+                  </div>
+                </li>
+              }
+              @if (hasStatus(a)) {
+                <li class="summary-list__item">
+                  <span
+                    class="summary-list__icon"
+                    [class.summary-list__icon--green]="statusIsActive(a)"
+                    [class.summary-list__icon--rose]="!statusIsActive(a)"
+                    aria-hidden="true">
+                    <i class="pi pi-circle-on"></i>
+                  </span>
+                  <div>
+                    <span class="summary-list__label">{{ 'agents.colStatus' | transloco }}</span>
+                    <span
+                      class="summary-list__value"
+                      [class.summary-list__value--active]="statusIsActive(a)"
+                      [class.summary-list__value--inactive]="!statusIsActive(a)">
+                      {{ statusDisplay(a) }}
+                    </span>
+                  </div>
+                </li>
+              }
+              @if (hasText(a.port)) {
+                <li class="summary-list__item">
+                  <span class="summary-list__icon summary-list__icon--amber" aria-hidden="true">
+                    <i class="pi pi-map-marker"></i>
+                  </span>
+                  <div>
+                    <span class="summary-list__label">{{ 'agents.colPort' | transloco }}</span>
+                    <span class="summary-list__value">{{ text(a.port) }}</span>
+                  </div>
+                </li>
+              }
+              @if (hasText(a.email)) {
+                <li class="summary-list__item">
+                  <span class="summary-list__icon summary-list__icon--blue" aria-hidden="true">
+                    <i class="pi pi-envelope"></i>
+                  </span>
+                  <div>
+                    <span class="summary-list__label">{{ 'profile.email' | transloco }}</span>
+                    <span class="summary-list__value summary-list__value--wrap">{{ text(a.email) }}</span>
+                  </div>
+                </li>
+              }
+              @if (hasText(a.phoneNumber)) {
+                <li class="summary-list__item">
+                  <span class="summary-list__icon summary-list__icon--teal" aria-hidden="true">
+                    <i class="pi pi-phone"></i>
+                  </span>
+                  <div>
+                    <span class="summary-list__label">{{ 'profile.phoneNumber' | transloco }}</span>
+                    <span class="summary-list__value">{{ text(a.phoneNumber) }}</span>
+                  </div>
+                </li>
+              }
+            </ul>
+          </div>
+        </aside>
+        </div>
+      }
+    </div>
+  }
+</section>

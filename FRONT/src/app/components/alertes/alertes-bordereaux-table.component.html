@@ -1,0 +1,147 @@
+<p-toast position="top-center" />
+<div class="alertes-section card modern-card alertes-section--dialog-host" [ngClass]="config.sectionExtraClass">
+  <div class="alertes-section__head">
+    <div class="alertes-section__title-wrap">
+      <span class="alertes-section__icon" [class]="config.iconClass" aria-hidden="true">
+        <i [class]="config.icon"></i>
+      </span>
+      <div>
+        <h3 class="alertes-section__title m-0">{{ config.titleKey | transloco }}</h3>
+        <span class="alertes-section__badge" [class]="config.badgeClass">{{ countLabel() }}</span>
+        <p class="alertes-section__hint m-0 mt-1">{{ config.hintKey | transloco }}</p>
+      </div>
+    </div>
+    <div class="flex gap-2 toolbar-icon-group">
+      <button
+        pButton
+        pRipple
+        type="button"
+        icon="pi pi-refresh"
+        class="p-button-rounded p-button-text icon-circle-btn"
+        [pTooltip]="'common.refresh' | transloco"
+        (click)="refreshTable()"></button>
+    </div>
+  </div>
+
+  <div class="search-row flex-1 mb-3">
+    <i class="pi pi-search" aria-hidden="true"></i>
+    <input
+      pInputText
+      type="search"
+      class="w-full alertes-input"
+      [placeholder]="config.searchKey | transloco"
+      [ngModel]="searchText()"
+      (ngModelChange)="searchText.set($event); onSearchValueChange()" />
+  </div>
+
+  <p-table
+    #dt
+    [value]="rows()"
+    [lazy]="true"
+    (onLazyLoad)="onLazyLoad($event)"
+    [loading]="loading()"
+    [paginator]="true"
+    [rows]="pageSize"
+    [totalRecords]="totalRecords()"
+    [rowsPerPageOptions]="[10, 20, 30]"
+    [showCurrentPageReport]="true"
+    [currentPageReportTemplate]="pageReportTemplate()"
+    styleClass="modern-table alertes-bordereaux-table"
+    dataKey="id">
+    <ng-template pTemplate="header">
+      <tr>
+        <th>{{ 'alertes.colSlipNo' | transloco }}</th>
+        <th>{{ 'alertes.colDate' | transloco }}</th>
+        <th>{{ 'alertes.colDirection' | transloco }}</th>
+        <th>{{ 'alertes.colAgent' | transloco }}</th>
+        <th>{{ 'alertes.colBoxes' | transloco }}</th>
+        <th class="col-actions text-center">{{ 'alertes.colActions' | transloco }}</th>
+      </tr>
+    </ng-template>
+    <ng-template pTemplate="body" let-row>
+      <tr>
+        <td><app-bordereau-pending-badge /></td>
+        <td>{{ formatDate(row.dateTransfert) }}</td>
+        <td>{{ row.directionLabel ?? emDash() }}</td>
+        <td>{{ row.agentUserName }}</td>
+        <td class="text-center">{{ row.boitesCount }}</td>
+        <td class="text-center col-actions">
+          <div class="alertes-actions-row">
+            <button
+              pButton
+              pRipple
+              type="button"
+              icon="pi pi-trash"
+              class="p-button-rounded p-button-text alertes-btn-delete"
+              [disabled]="deletingId() === row.id"
+              (click)="openSupprimer(row)"></button>
+            <button
+              pButton
+              pRipple
+              type="button"
+              icon="pi pi-eye"
+              class="p-button-rounded p-button-text"
+              [pTooltip]="(config.mode === 'pending' ? 'alertes.resume' : 'common.consult') | transloco"
+              (click)="openPrimaryAction(row)"></button>
+          </div>
+        </td>
+      </tr>
+    </ng-template>
+    <ng-template pTemplate="emptymessage">
+      <tr>
+        <td colspan="6" class="empty-message">{{ config.emptyKey | transloco }}</td>
+      </tr>
+    </ng-template>
+  </p-table>
+</div>
+
+<p-dialog
+  [visible]="supprimerDialogVisible()"
+  (visibleChange)="onSupprimerDialogVisibleChange($event)"
+  [header]="'alertes.deleteSlipTitle' | transloco"
+  [modal]="true"
+  appendTo="body"
+  [blockScroll]="true"
+  [dismissableMask]="true"
+  [closeOnEscape]="true"
+  [style]="{ width: 'min(96vw, 36rem)' }"
+  styleClass="modern-dialog alertes-dialog-portal alertes-delete-dialog"
+  [closable]="true"
+  [draggable]="false"
+  [resizable]="false">
+  @if (rowToDelete(); as row) {
+    <div class="alertes-delete-dialog__wrap">
+      <div class="alertes-delete-dialog__shell">
+        <div class="alertes-delete-dialog__icon-wrap" aria-hidden="true">
+          <i class="pi pi-exclamation-triangle"></i>
+        </div>
+        <p class="alertes-delete-dialog__message">
+          @if (config.mode === 'validation') {
+            {{ config.deleteDialogMessageKey | transloco: { agent: row.agentUserName } }}
+          } @else {
+            {{ config.deleteDialogMessageKey | transloco }}
+          }
+        </p>
+        <p class="alertes-delete-dialog__hint">{{ 'alertes.deletePermanent' | transloco }}</p>
+      </div>
+      <div class="alertes-delete-dialog__actions">
+        <button
+          pButton
+          pRipple
+          type="button"
+          [label]="'common.cancel' | transloco"
+          class="p-button-outlined alertes-delete-dialog__btn-cancel"
+          (click)="supprimerDialogVisible.set(false)"></button>
+        <button
+          pButton
+          pRipple
+          type="button"
+          [label]="'common.delete' | transloco"
+          icon="pi pi-trash"
+          class="alertes-delete-dialog__btn-danger"
+          [loading]="deletingId() === row.id"
+          (click)="supprimerBordereau(row)"></button>
+      </div>
+    </div>
+  }
+</p-dialog>

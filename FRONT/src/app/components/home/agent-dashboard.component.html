@@ -1,0 +1,165 @@
+<section class="agent-dash">
+  <header class="greeting-banner">
+    <div class="greeting-banner__main">
+      <div class="greeting-banner__avatar" aria-hidden="true">
+        <i class="fa-solid fa-user"></i>
+      </div>
+      <div class="greeting-banner__content">
+        <h2 class="greeting-banner__title m-0">{{ greetingLine() }}</h2>
+        <p class="greeting-banner__meta m-0">
+          <span class="greeting-banner__meta-item">
+            <i class="fa-solid fa-briefcase" aria-hidden="true"></i>
+            {{ 'dashboard.roleAgent' | transloco }}
+          </span>
+          <span class="greeting-banner__sep" aria-hidden="true">·</span>
+          <span class="greeting-banner__meta-item">
+            <i class="fa-solid fa-calendar" aria-hidden="true"></i>
+            {{ todayLabel() }}
+          </span>
+          @if (stats()?.directionLabel) {
+            <span class="greeting-banner__sep" aria-hidden="true">·</span>
+            <span class="greeting-banner__meta-item">
+              <i class="fa-solid fa-building" aria-hidden="true"></i>
+              {{ stats()!.directionLabel }}
+            </span>
+          }
+        </p>
+      </div>
+    </div>
+  </header>
+
+  @if (loading()) {
+    <div class="dash-loading card modern-card">
+      <p-progressSpinner strokeWidth="4" [ariaLabel]="'common.loadingAria' | transloco" />
+      <span>{{ 'dashboard.loadingIndicators' | transloco }}</span>
+    </div>
+  } @else if (loadError()) {
+    <div class="dash-error card modern-card">
+      <i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i>
+      <div>
+        <h3 class="m-0">{{ 'dashboard.indicatorsUnavailable' | transloco }}</h3>
+        <p class="m-0 mt-2">{{ loadError() }}</p>
+        <button type="button" class="retry-btn mt-3" (click)="load()">
+          <i class="pi pi-refresh"></i> {{ 'dashboard.retry' | transloco }}
+        </button>
+      </div>
+    </div>
+  } @else if (stats(); as data) {
+    <div class="kpi-grid">
+      <article class="kpi-card kpi-card--indigo">
+        <div class="kpi-card__icon"><i class="fa-solid fa-file-lines"></i></div>
+        <div class="kpi-card__body">
+          <span class="kpi-card__value">{{ bordereauxTotal() }}</span>
+          <span class="kpi-card__label">{{ 'dashboard.agentMyBordereaux' | transloco }}</span>
+          <span class="kpi-card__detail">
+            {{ 'dashboard.kpiAffectePending' | transloco: { affectes: data.bordereauxAffectes, enAttente: data.bordereauxEnAttente } }}
+          </span>
+        </div>
+      </article>
+
+      <article class="kpi-card kpi-card--emerald">
+        <div class="kpi-card__icon"><i class="fa-solid fa-box-archive"></i></div>
+        <div class="kpi-card__body">
+          <span class="kpi-card__value">{{ data.totalBoites }}</span>
+          <span class="kpi-card__label">{{ 'dashboard.agentMyBoites' | transloco }}</span>
+          <span class="kpi-card__detail">{{ 'dashboard.agentMyBoitesDetail' | transloco }}</span>
+        </div>
+      </article>
+
+      <article class="kpi-card kpi-card--amber">
+        <div class="kpi-card__icon"><i class="fa-solid fa-clock"></i></div>
+        <div class="kpi-card__body">
+          <span class="kpi-card__value">{{ data.bordereauxEnAttente }}</span>
+          <span class="kpi-card__label">{{ 'dashboard.tileEnAttente' | transloco }}</span>
+          <span class="kpi-card__detail">{{ 'dashboard.agentPendingDetail' | transloco }}</span>
+        </div>
+      </article>
+    </div>
+
+    <div class="charts-grid">
+      <section class="chart-panel card modern-card">
+        <h4 class="chart-panel__title">
+          <i class="fa-solid fa-circle-notch" aria-hidden="true"></i>
+          {{ 'dashboard.agentChartStatus' | transloco }}
+        </h4>
+        @if (bordereauxChartTotal() === 0) {
+          <p class="empty-hint">{{ 'dashboard.agentNoBordereaux' | transloco }}</p>
+        } @else {
+          <div class="chart-wrap chart-wrap--polar">
+            <canvas #statusCanvas [attr.aria-label]="'dashboard.agentChartPolarAria' | transloco"></canvas>
+          </div>
+        }
+      </section>
+
+      <section class="chart-panel card modern-card chart-panel--boites">
+        <h4 class="chart-panel__title">
+          <i class="fa-solid fa-layer-group" aria-hidden="true"></i>
+          {{ 'dashboard.agentChartBoitesEtat' | transloco }}
+        </h4>
+        @if (boitesChartTotal() === 0) {
+          <p class="empty-hint">{{ 'dashboard.agentNoBoites' | transloco }}</p>
+        } @else {
+          <p class="boites-etat-total m-0">
+            <span class="boites-etat-total__n">{{ boitesChartTotal() }}</span>
+            {{ 'dashboard.chartBoitesTotal' | transloco }}
+          </p>
+          <div class="boites-etat-layout">
+            <div class="chart-wrap chart-wrap--doughnut">
+              <canvas #etatCanvas [attr.aria-label]="'dashboard.agentChartBoitesAria' | transloco"></canvas>
+              <div class="boites-etat-doughnut-center" aria-hidden="true">
+                <span class="boites-etat-doughnut-center__n">{{ boitesChartTotal() }}</span>
+                <span class="boites-etat-doughnut-center__lbl">{{ 'dashboard.agentMyBoites' | transloco }}</span>
+              </div>
+            </div>
+            <ul class="boites-etat-list" [attr.aria-label]="'dashboard.chartDetailByEtat' | transloco">
+              @for (sl of data.boitesParEtat; track sl.code; let i = $index) {
+                <li class="boites-etat-list__item" [class.boites-etat-list__item--active]="sl.value > 0">
+                  <div class="boites-etat-list__head">
+                    <span
+                      class="boites-etat-list__icon"
+                      [style.background]="etatColor(sl.code, i) + '22'"
+                      [style.color]="etatColor(sl.code, i)"
+                      aria-hidden="true">
+                      <i [class]="etatIcon(sl.code)"></i>
+                    </span>
+                    <div class="boites-etat-list__meta">
+                      <span class="boites-etat-list__label">{{ etatLabel(sl) }}</span>
+                      <span class="boites-etat-list__nums">
+                        <strong>{{ sl.value }}</strong>
+                        <span class="boites-etat-list__pct">({{ boiteShare(sl.value) }} %)</span>
+                      </span>
+                    </div>
+                  </div>
+                  <div class="boites-etat-list__track" role="presentation">
+                    <div
+                      class="boites-etat-list__fill"
+                      [style.width.%]="sl.value > 0 ? Math.max(boiteShare(sl.value), 8) : 0"
+                      [style.background]="'linear-gradient(90deg, ' + etatColor(sl.code, i) + ', ' + etatColor(sl.code, i) + 'cc)'"></div>
+                  </div>
+                </li>
+              }
+            </ul>
+          </div>
+        }
+      </section>
+
+      <section class="chart-panel card modern-card chart-panel--wide">
+        <h4 class="chart-panel__title">
+          <i class="fa-solid fa-chart-line" aria-hidden="true"></i>
+          {{ 'dashboard.agentActivity6Months' | transloco }}
+        </h4>
+        @if (activiteTotal() === 0) {
+          <p class="empty-hint">{{ 'dashboard.agentNoBordereaux6Months' | transloco }}</p>
+        } @else {
+          <p class="activity-total-label">
+            <span class="activity-total-n">{{ activiteTotal() }}</span>
+            {{ 'dashboard.agentBordereauxCreatedPeriod' | transloco }}
+          </p>
+          <div class="chart-wrap chart-wrap--line">
+            <canvas #activityCanvas [attr.aria-label]="'dashboard.agentChartLineAria' | transloco"></canvas>
+          </div>
+        }
+      </section>
+    </div>
+  }
+</section>

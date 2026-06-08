@@ -1,0 +1,369 @@
+@import '../../../colors';
+
+:host {
+  display: block;
+}
+
+/* Bloc racine : surcharges PrimeNG (inputs / selects / paginateur) */
+.doc-types-host {
+  display: block;
+  font-family: var(--font-family);
+  background: $gray-100;
+  min-height: calc(100vh - 70px);
+
+  /* Champ texte : fond blanc, texte et bordure foncés */
+  ::ng-deep .doc-types-input.p-inputtext,
+  ::ng-deep input.doc-types-input.p-inputtext,
+  ::ng-deep .doc-types-input {
+    background: #ffffff !important;
+    color: #111827 !important;
+    -webkit-text-fill-color: #111827 !important;
+    border: 1px solid #d1d5db !important;
+    border-radius: 10px !important;
+    caret-color: #111827 !important;
+
+    &::placeholder {
+      color: #6b7280 !important;
+      opacity: 1;
+    }
+
+    &:enabled:focus {
+      background: #ffffff !important;
+      color: #111827 !important;
+      border-color: #6366f1 !important;
+      box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15) !important;
+    }
+  }
+
+  ::ng-deep input.doc-types-input.p-inputtext:-webkit-autofill,
+  ::ng-deep input.doc-types-input.p-inputtext:-webkit-autofill:hover,
+  ::ng-deep input.doc-types-input.p-inputtext:-webkit-autofill:focus {
+    -webkit-text-fill-color: #111827 !important;
+    -webkit-box-shadow: 0 0 0 1000px #ffffff inset !important;
+    box-shadow: 0 0 0 1000px #ffffff inset !important;
+    transition: background-color 9999s ease-out 0s;
+  }
+
+  /* Select (PrimeNG) : déclencheur lisible sur fond clair */
+  ::ng-deep .doc-type-select.p-select,
+  ::ng-deep p-select.doc-type-select .p-select {
+    background: #ffffff !important;
+    border: 1px solid #d1d5db !important;
+    border-radius: 10px !important;
+    color: #111827 !important;
+    min-height: 2.75rem;
+    align-items: center;
+  }
+
+  ::ng-deep p-select.doc-type-select .p-select .p-select-label,
+  ::ng-deep .doc-type-select.p-select .p-select-label {
+    color: #111827 !important;
+  }
+
+  ::ng-deep p-select.doc-type-select .p-select .p-select-label.p-placeholder,
+  ::ng-deep .doc-type-select.p-select .p-select-label.p-placeholder {
+    color: #6b7280 !important;
+  }
+
+  ::ng-deep p-select.doc-type-select .p-select .p-select-dropdown,
+  ::ng-deep .doc-type-select.p-select .p-select-dropdown {
+    color: #374151 !important;
+  }
+
+  /* Table + paginateur : select « lignes par page » */
+  ::ng-deep .doc-types-table .p-paginator {
+    background: #f9fafb;
+    border-top: 1px solid #e5e7eb;
+    color: #111827;
+  }
+
+  ::ng-deep .doc-types-table .p-paginator .p-select,
+  ::ng-deep .doc-types-table .p-paginator p-select .p-select,
+  ::ng-deep .doc-types-table .p-paginator-rpp-dropdown .p-select,
+  ::ng-deep .doc-types-table .p-paginator-rpp-dropdown p-select .p-select,
+  ::ng-deep .doc-types-table p-select.p-paginator-rpp-dropdown .p-select {
+    background: #ffffff !important;
+    border: 1px solid #d1d5db !important;
+    border-radius: 10px !important;
+    color: #111827 !important;
+  }
+
+  ::ng-deep .doc-types-table .p-paginator .p-select .p-select-label,
+  ::ng-deep .doc-types-table .p-paginator p-select .p-select .p-select-label,
+  ::ng-deep .doc-types-table .p-paginator-rpp-dropdown .p-select .p-select-label,
+  ::ng-deep .doc-types-table .p-paginator-rpp-dropdown p-select .p-select .p-select-label,
+  ::ng-deep .doc-types-table p-select.p-paginator-rpp-dropdown .p-select .p-select-label {
+    color: #111827 !important;
+  }
+
+  ::ng-deep .doc-types-table .p-paginator .p-select .p-select-dropdown,
+  ::ng-deep .doc-types-table .p-paginator p-select .p-select .p-select-dropdown,
+  ::ng-deep .doc-types-table .p-paginator-rpp-dropdown .p-select .p-select-dropdown,
+  ::ng-deep .doc-types-table .p-paginator-rpp-dropdown p-select .p-select .p-select-dropdown,
+  ::ng-deep .doc-types-table p-select.p-paginator-rpp-dropdown .p-select .p-select-dropdown {
+    color: #374151 !important;
+  }
+
+  ::ng-deep .doc-types-table .p-paginator .p-paginator-pages .p-paginator-page.p-highlight,
+  ::ng-deep .doc-types-table .p-paginator .p-paginator-pages .p-paginator-page.p-paginator-page-selected,
+  ::ng-deep .doc-types-table .p-paginator .p-paginator-pages button.p-paginator-page.p-highlight,
+  ::ng-deep .doc-types-table .p-paginator .p-paginator-pages button.p-paginator-page.p-paginator-page-selected {
+    background: #d1fae5 !important;
+    color: #065f46 !important;
+    border-color: #6ee7b7 !important;
+  }
+
+  ::ng-deep .doc-types-table .p-paginator .p-paginator-page:not(.p-highlight):not(.p-paginator-page-selected) {
+    color: #374151;
+  }
+
+}
+
+.document-types-page {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 1.25rem 1.25rem 2rem;
+}
+
+.search-card,
+.table-card {
+  padding: 1.35rem 1.5rem !important;
+  border: 1px solid $gray-200 !important;
+  box-shadow: $shadow-sm !important;
+}
+
+.section-title {
+  font-size: clamp(1.35rem, 2.2vw, 1.65rem);
+  font-weight: 800;
+  color: $gray-900;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+  font-family: var(--heading-font-family);
+
+  &--search {
+    font-size: clamp(1.5rem, 2.5vw, 1.85rem);
+  }
+}
+
+.card-subtitle {
+  font-size: 1.05rem;
+  color: $gray-600;
+  line-height: 1.45;
+  max-width: 40rem;
+  font-weight: 500;
+}
+
+.header-icon-container {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  background: $primary-08;
+  color: $primary;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.25rem;
+  flex-shrink: 0;
+
+  &--muted {
+    background: linear-gradient(135deg, rgba(99, 102, 241, 0.12), rgba(129, 140, 248, 0.08));
+    color: #6366f1;
+  }
+}
+
+.toolbar-icon-group {
+  .icon-circle-btn {
+    width: 42px;
+    height: 42px;
+    color: $gray-700;
+
+    &:hover {
+      background: $gray-100;
+      color: $primary;
+    }
+
+    &--primary {
+      color: $primary;
+
+      &:hover {
+        background: $primary-08;
+      }
+    }
+  }
+
+  .active-filter {
+    background: $primary-08 !important;
+    color: $primary !important;
+  }
+}
+
+.search-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex: 1;
+  min-width: 200px;
+
+  > .pi {
+    color: #6b7280 !important;
+    font-size: 1.15rem;
+  }
+
+  .doc-types-input {
+    font-size: 1.05rem !important;
+    padding: 0.85rem 1rem !important;
+    min-height: 3rem;
+  }
+}
+
+.filter-row {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.filter-label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: $gray-700;
+}
+
+.badge-count {
+  display: inline-block;
+  margin-top: 0.35rem;
+  padding: 0.35rem 0.85rem;
+  border-radius: 999px;
+  background: $gray-100;
+  color: $gray-700;
+  font-size: 0.92rem;
+  font-weight: 700;
+}
+
+.type-cell {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  min-width: 0;
+}
+
+.type-cell__icon {
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: $radius-lg;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  background: linear-gradient(135deg, #eef2ff, #e0e7ff);
+  color: #4338ca;
+  font-size: 1rem;
+}
+
+.type-cell__title {
+  font-size: 1.0625rem;
+  font-weight: 700;
+  color: $gray-900;
+  line-height: 1.35;
+}
+
+.badge-direction {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.4rem 0.9rem;
+  border-radius: 999px;
+  background: #ede9fe;
+  color: #5b21b6;
+  font-size: 0.95rem;
+  font-weight: 700;
+  border: 1px solid rgba(139, 92, 246, 0.2);
+
+  i {
+    font-size: 0.85rem;
+  }
+}
+
+.direction-cell {
+  flex-wrap: wrap;
+}
+
+.col-actions {
+  width: 4.5rem;
+}
+
+.row-actions,
+.col-actions {
+  text-align: center;
+}
+
+:host ::ng-deep .icon-action--edit.p-button {
+  width: 2.65rem !important;
+  height: 2.65rem !important;
+  min-width: 2.65rem !important;
+  padding: 0 !important;
+  border-radius: $radius-lg !important;
+  background: #eff6ff !important;
+  color: #2563eb !important;
+  border: 1px solid #bfdbfe !important;
+
+  .p-button-icon {
+    font-size: 1.05rem;
+  }
+
+  &:hover:enabled {
+    background: #dbeafe !important;
+    transform: translateY(-1px);
+  }
+}
+
+/* Table types de documents — texte plus grand et lisible */
+.doc-types-host ::ng-deep .doc-types-table.p-datatable {
+  .p-datatable-thead > tr > th {
+    background: #fafafa !important;
+    color: #52525b !important;
+    font-weight: 700 !important;
+    font-size: 0.875rem !important;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 1rem 1.25rem !important;
+    border-color: #e4e4e7 !important;
+  }
+
+  .p-datatable-tbody > tr > td {
+    padding: 1.1rem 1.25rem !important;
+    font-size: 1.0625rem !important;
+    color: #18181b !important;
+    border-color: #f4f4f5 !important;
+    vertical-align: middle !important;
+  }
+
+  .p-datatable-tbody > tr:hover > td {
+    background: #fafafa !important;
+  }
+}
+
+.empty-message {
+  text-align: center;
+  color: $gray-600;
+  padding: 2.5rem 1rem !important;
+  font-size: 1.05rem;
+}
+
+.field label {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 0.35rem;
+  color: $gray-800;
+}
+
+.field-hint {
+  font-weight: 500;
+  color: $gray-600;
+  font-size: 0.92em;
+}
+
+.direction-none {
+  color: $gray-400;
+  font-size: 1rem;
+  font-style: italic;
+}

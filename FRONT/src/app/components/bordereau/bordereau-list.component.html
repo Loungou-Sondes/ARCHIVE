@@ -1,0 +1,258 @@
+<div class="bordereau-host">
+  <p-toast position="top-center" />
+  <div class="bordereau-page">
+    <section class="card modern-card search-card bordereau-search-card mb-3" aria-labelledby="bordereau-search-heading">
+      <div class="flex flex-column md:flex-row md:align-items-start justify-content-between gap-3 mb-3">
+        <div class="bordereau-search-card__head flex align-items-center gap-3">
+          <div class="header-icon-container bordereau-search-card__icon" aria-hidden="true">
+            <i class="pi pi-search"></i>
+          </div>
+          <div>
+            <h2 id="bordereau-search-heading" class="bordereau-search-title m-0">{{ 'bordereau.searchTitle' | transloco }}</h2>
+            @if (!showFilters()) {
+              <p class="bordereau-search-hint m-0 mt-2" [innerHTML]="'bordereau.searchHintDefault' | transloco"></p>
+            } @else {
+              <p class="bordereau-search-hint m-0 mt-2" [innerHTML]="'bordereau.searchHintFilters' | transloco"></p>
+            }
+          </div>
+        </div>
+        <div class="flex gap-2 align-items-center justify-content-end toolbar-icon-group">
+          <button
+            pButton
+            pRipple
+            type="button"
+            icon="pi pi-filter"
+            class="p-button-rounded p-button-text icon-circle-btn"
+            [class.p-button-secondary]="!showFilters() && !hasActiveFilters()"
+            [class.active-filter]="showFilters() || hasActiveFilters()"
+            [pTooltip]="'bordereau.filtersTooltip' | transloco"
+            [attr.aria-label]="'bordereau.filtersTooltip' | transloco"
+            (click)="toggleFilters()"></button>
+          <button
+            pButton
+            pRipple
+            type="button"
+            icon="pi pi-sort-alt"
+            class="p-button-rounded p-button-text icon-circle-btn"
+            [pTooltip]="sortTooltip()"
+            [attr.aria-label]="'bordereau.sortTooltip' | transloco"
+            (click)="cycleSort()"></button>
+          <button
+            pButton
+            pRipple
+            type="button"
+            icon="pi pi-times"
+            class="p-button-rounded p-button-text icon-circle-btn"
+            [pTooltip]="'bordereau.resetSearchTooltip' | transloco"
+            [attr.aria-label]="'bordereau.resetSearchTooltip' | transloco"
+            (click)="clearSearch()"></button>
+        </div>
+      </div>
+
+      <div class="flex flex-column gap-3">
+        <div class="search-row flex-1">
+          <i class="pi pi-search" aria-hidden="true"></i>
+          <input
+            pInputText
+            type="search"
+            class="w-full bordereau-input bordereau-search-input"
+            [placeholder]="'bordereau.searchPlaceholder' | transloco"
+            [ngModel]="searchText()"
+            (ngModelChange)="searchText.set($event); onSearchValueChange()"
+            aria-describedby="bordereau-search-heading" />
+        </div>
+
+        @if (showFilters()) {
+          <div class="filters-grid">
+            <div class="filter-row">
+              <label class="filter-label" for="bordereauAnneeMin">{{ 'bordereau.filterYearMin' | transloco }}</label>
+              <input
+                pInputText
+                id="bordereauAnneeMin"
+                type="text"
+                inputmode="numeric"
+                maxlength="4"
+                class="w-full bordereau-input bordereau-filter-input"
+                [placeholder]="'bordereau.filterYearPlaceholder' | transloco"
+                [ngModel]="filterAnneeMin()"
+                (ngModelChange)="filterAnneeMin.set($event); onFilterAnneeChange()" />
+            </div>
+            <div class="filter-row">
+              <label class="filter-label" for="bordereauAnneeMax">{{ 'bordereau.filterYearMax' | transloco }}</label>
+              <input
+                pInputText
+                id="bordereauAnneeMax"
+                type="text"
+                inputmode="numeric"
+                maxlength="4"
+                class="w-full bordereau-input bordereau-filter-input"
+                [placeholder]="'bordereau.filterYearPlaceholder' | transloco"
+                [ngModel]="filterAnneeMax()"
+                (ngModelChange)="filterAnneeMax.set($event); onFilterAnneeChange()" />
+            </div>
+          </div>
+        }
+      </div>
+    </section>
+
+    @if (auth.isAgent()) {
+      <section class="card modern-card table-card mb-3">
+        <div class="flex align-items-center justify-content-between mb-4 flex-wrap gap-3">
+          <div class="flex align-items-center gap-2 flex-wrap">
+            <div class="header-icon-container header-icon-container--muted">
+              <i class="pi pi-clock" aria-hidden="true"></i>
+            </div>
+            <div>
+              <h4 class="card-title m-0">{{ 'bordereau.pendingValidationTitle' | transloco }}</h4>
+              <span class="badge-count">{{ pendingCountLabel() }}</span>
+              <p class="card-subtitle m-0 mt-1 text-sm">
+                {{ 'bordereau.pendingValidationHint' | transloco }}
+              </p>
+            </div>
+          </div>
+        </div>
+        <p-table
+          [value]="pendingRows()"
+          [loading]="pendingLoading()"
+          styleClass="modern-table bordereau-table bordereau-table--main"
+          responsiveLayout="scroll"
+          dataKey="id">
+          <ng-template pTemplate="header">
+            <tr>
+              <th class="col-numero">{{ 'bordereau.colSlipNo' | transloco }}</th>
+              <th class="col-date">{{ 'bordereau.colTransferDate' | transloco }}</th>
+              <th class="col-direction">{{ 'bordereau.colDirection' | transloco }}</th>
+              <th class="col-boites text-center">{{ 'bordereau.colBoxes' | transloco }}</th>
+              <th class="col-actions text-center">{{ 'bordereau.colActions' | transloco }}</th>
+            </tr>
+          </ng-template>
+          <ng-template pTemplate="body" let-row>
+            <tr>
+              <td class="col-numero"><app-bordereau-pending-badge /></td>
+              <td class="col-date">{{ formatDate(row.dateTransfert) }}</td>
+              <td class="col-direction">{{ row.directionLabel ?? emDash() }}</td>
+              <td class="col-boites text-center">
+                <span class="boites-pill">{{ row.boitesCount }}</span>
+              </td>
+              <td class="text-center col-actions">
+                <button
+                  pButton
+                  pRipple
+                  type="button"
+                  icon="pi pi-pencil"
+                  class="p-button-rounded p-button-text modern-icon-btn"
+                  [attr.aria-label]="'common.edit' | transloco"
+                  (click)="openPendingEdit(row)"></button>
+              </td>
+            </tr>
+          </ng-template>
+          <ng-template pTemplate="emptymessage">
+            <tr>
+              <td colspan="5" class="empty-message">
+                <i class="pi pi-info-circle mr-2"></i>
+                {{ 'bordereau.pendingEmpty' | transloco }}
+              </td>
+            </tr>
+          </ng-template>
+        </p-table>
+      </section>
+    }
+
+    <section class="card modern-card table-card table-card--liste">
+      <div class="table-card__head flex align-items-center justify-content-between mb-4 flex-wrap gap-3">
+        <div class="table-card__head-brand flex align-items-center gap-3">
+          <div class="header-icon-container header-icon-container--liste" aria-hidden="true">
+            <i class="pi pi-file"></i>
+          </div>
+          <div>
+            <h2 class="table-list-title m-0">
+              {{ (auth.isAgent() ? 'bordereau.tableTitleAgent' : 'bordereau.tableTitleAdmin') | transloco }}
+            </h2>
+            <span class="badge-count badge-count--liste">{{ countLabel() }}</span>
+          </div>
+        </div>
+        <div class="flex gap-2 align-items-center toolbar-icon-group">
+          <button
+            pButton
+            pRipple
+            type="button"
+            icon="pi pi-plus"
+            class="p-button-rounded p-button-text icon-circle-btn icon-circle-btn--primary"
+            [pTooltip]="'bordereau.newSlipTooltip' | transloco"
+            [attr.aria-label]="'bordereau.newSlipTooltip' | transloco"
+            (click)="openNouveau()"></button>
+          <button
+            pButton
+            pRipple
+            type="button"
+            icon="pi pi-refresh"
+            class="p-button-rounded p-button-text icon-circle-btn"
+            [pTooltip]="'common.refresh' | transloco"
+            [attr.aria-label]="'common.refresh' | transloco"
+            (click)="refreshTable()"></button>
+        </div>
+      </div>
+
+      <p-table
+        #dt
+        [value]="rows()"
+        [lazy]="true"
+        (onLazyLoad)="onLazyLoad($event)"
+        [loading]="loading()"
+        [paginator]="true"
+        [rows]="pageSize"
+        [totalRecords]="totalRecords()"
+        [rowsPerPageOptions]="[10, 20, 30, 50]"
+        [showCurrentPageReport]="true"
+        [currentPageReportTemplate]="pageReportTemplate()"
+        [rowHover]="true"
+        styleClass="modern-table bordereau-table bordereau-table--main"
+        responsiveLayout="scroll"
+        dataKey="id">
+        <ng-template pTemplate="header">
+          <tr>
+            <th class="col-numero">{{ 'bordereau.colSlipNo' | transloco }}</th>
+            <th class="col-date">{{ 'bordereau.colTransferDate' | transloco }}</th>
+            <th class="col-direction">{{ 'bordereau.colDirection' | transloco }}</th>
+            <th class="col-agent">{{ 'bordereau.colAgent' | transloco }}</th>
+            <th class="col-boites text-center">{{ 'bordereau.colBoxes' | transloco }}</th>
+            <th class="col-actions text-center">{{ 'bordereau.colActions' | transloco }}</th>
+          </tr>
+        </ng-template>
+        <ng-template pTemplate="body" let-row>
+          <tr class="bordereau-row">
+            <td class="col-numero">
+              <span class="num-badge">{{ row.numeroBordereau }}</span>
+            </td>
+            <td class="col-date">{{ formatDate(row.dateTransfert) }}</td>
+            <td class="col-direction">{{ row.directionLabel ?? emDash() }}</td>
+            <td class="col-agent">{{ row.agentUserName }}</td>
+            <td class="col-boites text-center">
+              <span class="boites-pill">{{ row.boitesCount }}</span>
+            </td>
+            <td class="text-center col-actions">
+              <div class="bordereau-actions-row">
+                <button
+                  pButton
+                  pRipple
+                  type="button"
+                  icon="pi pi-eye"
+                  class="p-button-rounded p-button-text modern-icon-btn"
+                  [attr.aria-label]="'common.consult' | transloco"
+                  (click)="openDetail(row)"></button>
+              </div>
+            </td>
+          </tr>
+        </ng-template>
+        <ng-template pTemplate="emptymessage">
+          <tr>
+            <td colspan="6" class="empty-message">
+              <i class="pi pi-info-circle mr-2"></i>
+              {{ 'bordereau.listEmpty' | transloco }}
+            </td>
+          </tr>
+        </ng-template>
+      </p-table>
+    </section>
+  </div>
+</div>

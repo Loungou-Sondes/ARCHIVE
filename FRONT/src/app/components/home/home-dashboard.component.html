@@ -1,0 +1,279 @@
+<p-toast position="top-center" />
+
+<section class="dashboard-host">
+  <header class="dashboard-greeting" [attr.aria-label]="'dashboard.homeAria' | transloco">
+    <div class="dashboard-greeting__main">
+      <div class="dashboard-greeting__avatar" aria-hidden="true">
+        <i class="fa-solid fa-user"></i>
+      </div>
+      <div class="dashboard-greeting__content">
+        <h2 class="dashboard-greeting__title m-0">{{ greetingLine() }}</h2>
+        <p class="dashboard-greeting__meta m-0">
+          <span class="dashboard-greeting__meta-item">
+            <i class="fa-solid fa-briefcase" aria-hidden="true"></i>
+            {{ roleShortLabel() }}
+          </span>
+          <span class="dashboard-greeting__sep" aria-hidden="true">·</span>
+          <span class="dashboard-greeting__meta-item">
+            <i class="fa-solid fa-calendar" aria-hidden="true"></i>
+            {{ todayLabel() }}
+          </span>
+        </p>
+      </div>
+    </div>
+    <div class="dashboard-greeting__period">
+      <span class="period-label" id="dashboard-period-label">{{ 'dashboard.periodLabel' | transloco }}</span>
+      <div class="period-pills" role="group" aria-labelledby="dashboard-period-label">
+        @for (opt of periodOptions(); track opt.value) {
+          <button
+            type="button"
+            class="period-pill"
+            [class.period-pill--active]="period() === opt.value"
+            (click)="onPeriodChange(opt.value)">
+            {{ opt.label }}
+          </button>
+        }
+      </div>
+    </div>
+  </header>
+
+  @if (loading()) {
+    <div class="dashboard-loading card modern-card">
+      <p-progressSpinner strokeWidth="4" [ariaLabel]="'common.loadingAria' | transloco" />
+      <span>{{ 'dashboard.loadingIndicators' | transloco }}</span>
+    </div>
+  } @else if (loadError()) {
+    <div class="dashboard-error card modern-card">
+      <i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i>
+      <div>
+        <h3 class="m-0">{{ 'dashboard.indicatorsUnavailable' | transloco }}</h3>
+        <p class="m-0 mt-2">{{ loadError() }}</p>
+        <button type="button" class="retry-btn mt-3" (click)="load()">
+          <i class="pi pi-refresh"></i> {{ 'dashboard.retry' | transloco }}
+        </button>
+      </div>
+    </div>
+  } @else if (stats(); as data) {
+    <div class="dashboard-body">
+    <!-- Synthèse rapide -->
+    <div class="highlights" [class.highlights--four]="activiteTotal() > 0 && period() !== 'current'">
+      <article class="highlight-card highlight-card--indigo">
+        <div class="highlight-card__icon" aria-hidden="true">
+          <i class="fa-solid fa-file-lines"></i>
+        </div>
+        <div class="highlight-card__text">
+          <span class="highlight-card__value">{{ bordereauxTotal() }}</span>
+          <span class="highlight-card__label">{{ 'dashboard.highlightBordereauxTotal' | transloco }}</span>
+          <span class="highlight-card__detail">
+            {{ 'dashboard.kpiAffectePending' | transloco: { affectes: data.kpis.bordereauxAffectes, enAttente: data.kpis.bordereauxEnAttente } }}
+          </span>
+        </div>
+      </article>
+      <article class="highlight-card highlight-card--emerald">
+        <div class="highlight-card__icon" aria-hidden="true">
+          <i class="fa-solid fa-box-archive"></i>
+        </div>
+        <div class="highlight-card__text">
+          <span class="highlight-card__value">{{ boiteTotal() }}</span>
+          <span class="highlight-card__label">{{ 'dashboard.highlightBoitesTracked' | transloco }}</span>
+          <span class="highlight-card__detail">{{ 'dashboard.highlightBoitesDetail' | transloco }}</span>
+        </div>
+      </article>
+      <article class="highlight-card highlight-card--pink">
+        <div class="highlight-card__icon" aria-hidden="true">
+          <i class="fa-solid fa-table-cells"></i>
+        </div>
+        <div class="highlight-card__text">
+          <span class="highlight-card__value">{{ data.kpis.occupationPourcent }}%</span>
+          <span class="highlight-card__label">{{ 'dashboard.highlightBlocsOccupied' | transloco }}</span>
+          <span class="highlight-card__detail">
+            {{ 'dashboard.highlightBlocsDetail' | transloco: { occupes: data.kpis.blocsOccupes, total: data.kpis.blocsTotal, epis: data.kpis.epis } }}
+          </span>
+        </div>
+      </article>
+      @if (activiteTotal() > 0 && period() !== 'current') {
+        <article class="highlight-card highlight-card--violet">
+          <div class="highlight-card__icon" aria-hidden="true">
+            <i class="fa-solid fa-calendar-check"></i>
+          </div>
+          <div class="highlight-card__text">
+            <span class="highlight-card__value">{{ activiteTotal() }}</span>
+            <span class="highlight-card__label">{{ periodKpiLabel() }}</span>
+            <span class="highlight-card__detail">{{ 'dashboard.highlightTransferDateHint' | transloco }}</span>
+          </div>
+        </article>
+      }
+    </div>
+
+    <!-- Graphiques -->
+    <section class="dash-section dash-section--charts">
+      <h3 class="dash-section__title">
+        <i class="fa-solid fa-chart-line" aria-hidden="true"></i>
+        <span>{{ 'dashboard.sectionCharts' | transloco }}</span>
+      </h3>
+      <div class="charts-grid">
+        <article class="panel card modern-card chart-panel">
+          <h4 class="panel__title">{{ 'dashboard.chartBordereauxFlux' | transloco }}</h4>
+          <p class="panel__lead">{{ chartPeriodHint() }}</p>
+          @if (activiteTotal() === 0) {
+            <p class="empty-hint">{{ 'dashboard.chartNoBordereauxPeriod' | transloco }}</p>
+          } @else {
+            <p class="activity-total">
+              <span class="activity-total__n">{{ activiteTotal() }}</span>
+              {{ 'dashboard.chartBordereauxOnPeriod' | transloco }}
+            </p>
+          }
+          <div
+            class="chart-canvas-wrap chart-canvas-wrap--bar"
+            [class.chart-canvas-wrap--hidden]="activiteTotal() === 0">
+            <canvas #activityCanvas [attr.aria-label]="'dashboard.chartBarAria' | transloco"></canvas>
+          </div>
+        </article>
+
+        <article class="panel card modern-card chart-panel chart-panel--boites">
+          <h4 class="panel__title">{{ 'dashboard.chartBoitesEtat' | transloco }}</h4>
+          @if (boiteTotal() === 0) {
+            <p class="empty-hint">{{ 'dashboard.chartNoBoitesEtat' | transloco }}</p>
+          } @else {
+            <p class="chart-boites-total m-0">
+              <span class="chart-boites-total__n">{{ boiteTotal() }}</span>
+              {{ 'dashboard.chartBoitesTotal' | transloco }}
+            </p>
+            <div class="chart-boites-layout">
+              <div class="chart-canvas-wrap chart-canvas-wrap--doughnut">
+                <canvas #boitesCanvas [attr.aria-label]="'dashboard.chartDoughnutAria' | transloco"></canvas>
+              </div>
+              <ul class="chart-boites-stats" [attr.aria-label]="'dashboard.chartDetailByEtat' | transloco">
+                @for (sl of data.boitesParEtat; track sl.code; let i = $index) {
+                  <li class="chart-boites-stats__row">
+                    <span
+                      class="chart-boites-stats__dot"
+                      [style.background]="etatColor(sl.code, i)"
+                      aria-hidden="true"></span>
+                    <span class="chart-boites-stats__label">{{ etatLabel(sl) }}</span>
+                    <span class="chart-boites-stats__nums">
+                      <strong>{{ sl.value }}</strong>
+                      <span class="chart-boites-stats__pct">({{ boiteShare(sl.value) }} %)</span>
+                    </span>
+                  </li>
+                }
+              </ul>
+            </div>
+          }
+        </article>
+      </div>
+    </section>
+
+    <!-- Section 1 : Bordereaux -->
+    <section class="dash-section">
+      <h3 class="dash-section__title">
+        <i class="fa-solid fa-file-lines" aria-hidden="true"></i>
+        <span>{{ 'dashboard.sectionBordereaux' | transloco }}</span>
+      </h3>
+      <div class="kpi-row kpi-row--bordereaux">
+        <article class="stat-tile stat-tile--primary">
+          <span class="stat-tile__label">{{ 'dashboard.tileAffectes' | transloco }}</span>
+          <span class="stat-tile__value">{{ data.kpis.bordereauxAffectes }}</span>
+          <span class="stat-tile__hint">{{ 'dashboard.tileAffectesHint' | transloco }}</span>
+        </article>
+        <article class="stat-tile stat-tile--warn">
+          <span class="stat-tile__label">{{ 'dashboard.tileEnAttente' | transloco }}</span>
+          <span class="stat-tile__value">{{ data.kpis.bordereauxEnAttente }}</span>
+          <span class="stat-tile__hint">{{ 'dashboard.tileEnAttenteHint' | transloco }}</span>
+        </article>
+        @if (data.kpis.bordereauxSurPeriode != null) {
+          <article class="stat-tile stat-tile--accent">
+            <span class="stat-tile__label">{{ periodKpiLabel() }}</span>
+            <span class="stat-tile__value">{{ data.kpis.bordereauxSurPeriode }}</span>
+            <span class="stat-tile__hint">{{ 'dashboard.highlightTransferDateHint' | transloco }}</span>
+          </article>
+        }
+        <article class="stat-tile stat-tile--ratio">
+          <span class="stat-tile__label">{{ 'dashboard.tileRepartition' | transloco }}</span>
+          <div class="ratio-bar" role="presentation">
+            @if (bordereauxTotal() > 0) {
+              <span
+                class="ratio-bar__affecte"
+                [style.width.%]="(data.kpis.bordereauxAffectes / bordereauxTotal()) * 100"></span>
+            }
+          </div>
+          <span class="stat-tile__hint">
+            {{ 'dashboard.kpiAffectePending' | transloco: { affectes: data.kpis.bordereauxAffectes, enAttente: data.kpis.bordereauxEnAttente } }}
+          </span>
+        </article>
+      </div>
+    </section>
+
+    <!-- Section 2 : Stockage -->
+    <div class="mid-grid mid-grid--storage-only">
+      <section class="dash-section">
+        <h3 class="dash-section__title">
+          <i class="fa-solid fa-warehouse" aria-hidden="true"></i>
+          <span>{{ 'dashboard.sectionStorage' | transloco }}</span>
+        </h3>
+        <article class="panel card modern-card panel--storage">
+          <div class="storage-metric">
+            <div class="storage-metric__head">
+              <span class="storage-metric__label">{{ 'dashboard.storageOccupation' | transloco }}</span>
+              <strong>{{ data.kpis.occupationPourcent }}%</strong>
+            </div>
+            <div class="occupation-track">
+              <div class="occupation-fill" [style.width.%]="data.kpis.occupationPourcent"></div>
+            </div>
+            <p class="storage-detail">
+              {{ 'dashboard.storageBlocsDetail' | transloco: { occupes: data.kpis.blocsOccupes, total: data.kpis.blocsTotal } }}
+            </p>
+          </div>
+          <div class="storage-grid storage-grid--two">
+            <div class="storage-chip">
+              <span class="storage-chip__value">{{ data.kpis.epis }}</span>
+              <span class="storage-chip__label">{{ 'dashboard.storageEpisRegistered' | transloco }}</span>
+            </div>
+            <div class="storage-chip">
+              <span class="storage-chip__value">{{ data.kpis.blocsTotal - data.kpis.blocsOccupes }}</span>
+              <span class="storage-chip__label">{{ 'dashboard.storageBlocsFree' | transloco }}</span>
+            </div>
+          </div>
+        </article>
+      </section>
+    </div>
+
+    <!-- Section 3 : Activité + listes -->
+    <section class="dash-section">
+      <h3 class="dash-section__title">
+        <i class="fa-solid fa-chart-column" aria-hidden="true"></i>
+        <span>{{ 'dashboard.sectionActivity' | transloco }}</span>
+      </h3>
+      <div class="bottom-grid bottom-grid--lists-only">
+        <article class="panel card modern-card">
+            <h4 class="panel__title">{{ 'dashboard.panelTopAgents' | transloco }}</h4>
+            @if (data.agentsParVolume.length === 0) {
+              <p class="empty-hint">{{ 'dashboard.noBordereauxRegistered' | transloco }}</p>
+            } @else {
+              <ul class="rank-list">
+                @for (a of data.agentsParVolume; track a.userName; let i = $index) {
+                  <li class="rank-list__item">
+                    <span class="rank-list__pos">{{ i + 1 }}</span>
+                    <div class="rank-list__body">
+                      <span class="rank-list__name">{{ a.userName }}</span>
+                      <div class="rank-list__bar-wrap">
+                        <div
+                          class="rank-list__bar"
+                          [style.width.%]="
+                            data.agentsParVolume[0].bordereauxCount > 0
+                              ? (a.bordereauxCount / data.agentsParVolume[0].bordereauxCount) * 100
+                              : 0
+                          "></div>
+                      </div>
+                    </div>
+                    <span class="rank-list__count">{{ a.bordereauxCount }}</span>
+                  </li>
+                }
+              </ul>
+            }
+        </article>
+      </div>
+    </section>
+    </div>
+  }
+</section>

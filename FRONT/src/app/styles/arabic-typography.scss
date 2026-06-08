@@ -1,0 +1,113 @@
+/* Typographie arabe : police lisible + tailles renforcées dans les modales */
+@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&display=swap');
+
+html[lang='ar'] {
+  --font-family: 'Cairo', 'Segoe UI', 'Tahoma', sans-serif;
+  --heading-font-family: 'Cairo', 'Segoe UI', 'Tahoma', sans-serif;
+
+  body {
+    font-family: var(--font-family);
+  }
+
+  /* PrimeNG append les dialogues sur <body> */
+  .p-dialog,
+  .p-confirmdialog {
+    font-family: var(--font-family);
+
+    .p-dialog-title {
+      font-size: 1.5rem !important;
+      line-height: 1.35 !important;
+    }
+
+    .p-dialog-content,
+    .p-dialog-footer .p-button-label {
+      font-size: 1.02rem;
+      line-height: 1.55;
+    }
+
+    .p-confirmdialog-message,
+    .p-confirm-dialog-message {
+      line-height: 1.55 !important;
+    }
+  }
+
+  .rule-details-head__title {
+    font-size: clamp(1.5rem, 2.4vw, 1.75rem);
+    line-height: 1.35;
+  }
+
+  .rule-details-head__subtitle {
+    font-size: 1.12rem;
+    line-height: 1.45;
+  }
+
+  .rule-details__label {
+    font-size: 0.95rem;
+    font-weight: 700;
+    letter-spacing: 0;
+    text-transform: none;
+    line-height: 1.45;
+  }
+
+  .rule-details__period-label {
+    font-size: 0.92rem;
+    letter-spacing: 0;
+    text-transform: none;
+    line-height: 1.4;
+  }
+
+  .rule-details__period-value {
+    font-size: 1.35rem;
+  }
+
+  .rule-details-type-chip {
+    font-size: 1.12rem;
+    line-height: 1.45;
+  }
+
+  .regles-create-section__title {
+    font-size: 1.08rem;
+    letter-spacing: 0;
+    text-transform: none;
+    line-height: 1.4;
+  }
+
+  .regles-create-label {
+    font-size: 1.125rem;
+    line-height: 1.45;
+
+    .field-hint {
+      font-size: 1rem;
+      line-height: 1.4;
+    }
+  }
+
+  .regles-locked-badge {
+    font-size: 0.88rem;
+    letter-spacing: 0;
+    text-transform: none;
+  }
+
+  .boite-dossiers__count,
+  .boite-dossiers__hint {
+    font-size: 1.02rem;
+    line-height: 1.5;
+  }
+
+  .boite-dossiers__year-error {
+    font-size: 0.92rem;
+    line-height: 1.4;
+  }
+
+  .boite-detail__pill {
+    font-size: 1.05rem;
+  }
+
+  .boite-dossier-card__year {
+    font-size: 0.92rem;
+  }
+
+  .boite-consult__loading {
+    font-size: 1.1rem;
+  }
+}

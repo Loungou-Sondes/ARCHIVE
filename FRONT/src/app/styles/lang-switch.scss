@@ -1,0 +1,130 @@
+.lang-switch {
+  position: relative;
+  gap: 0.2rem;
+  padding: 0.28rem;
+
+  /* Topbar : même gabarit que le bouton profil (avatar 38px + padding pill). */
+  &.topbar-pill:not(.lang-switch--login) {
+    gap: 0.35rem;
+    padding: 0.28rem 0.35rem 0.28rem 0.75rem;
+    min-height: calc(0.28rem * 2 + 38px);
+
+    .lang-switch__globe {
+      margin-inline-start: 0.35rem;
+      margin-inline-end: 0.15rem;
+      font-size: 1.1rem;
+    }
+
+    .lang-switch__btn {
+      font-size: 0.92rem;
+      font-weight: 800;
+      padding: 0 1rem;
+      height: 38px;
+      min-height: 38px;
+      line-height: 1;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+
+      &[lang='ar'] {
+        font-size: 0.95rem;
+      }
+    }
+  }
+
+  &__globe {
+    flex-shrink: 0;
+    margin-inline-start: 0.5rem;
+    margin-inline-end: 0.1rem;
+    font-size: 1rem;
+    color: #2563eb;
+  }
+
+  &__btn {
+    border: none;
+    background: transparent;
+    color: #475569;
+    font-size: 0.9rem;
+    font-weight: 700;
+    padding: 0.5rem 0.95rem;
+    border-radius: 999px;
+    cursor: pointer;
+    white-space: nowrap;
+    line-height: 1.25;
+    transition:
+      background 0.2s ease,
+      color 0.2s ease,
+      box-shadow 0.2s ease,
+      transform 0.15s ease;
+
+    &[lang='ar'] {
+      font-family: 'Cairo', 'Segoe UI', Tahoma, sans-serif;
+      font-size: 0.98rem;
+      font-weight: 800;
+      letter-spacing: 0;
+    }
+
+    &:hover:not(.lang-switch__btn--active) {
+      background: rgba(241, 245, 249, 0.95);
+      color: #0f172a;
+    }
+
+    &--active {
+      background: linear-gradient(135deg, #4f46e5 0%, #2563eb 100%);
+      color: #ffffff;
+      box-shadow: 0 4px 14px rgba(37, 99, 235, 0.38);
+    }
+
+    &:active {
+      transform: scale(0.98);
+    }
+  }
+
+  &--login {
+    position: fixed;
+    top: max(1rem, env(safe-area-inset-top, 0px));
+    inset-inline-end: max(1rem, env(safe-area-inset-right, 0px));
+    z-index: 100;
+    background: rgba(255, 255, 255, 0.94);
+    box-shadow: 0 10px 28px rgba(15, 23, 42, 0.16);
+  }
+}
+
+@media (max-width: 640px) {
+  .lang-switch {
+    &.topbar-pill:not(.lang-switch--login) {
+      padding: 0.28rem 0.3rem 0.28rem 0.55rem;
+      min-height: calc(0.28rem * 2 + 38px);
+
+      .lang-switch__btn {
+        padding: 0 0.75rem;
+        height: 38px;
+        min-height: 38px;
+        font-size: 0.85rem;
+
+        &[lang='ar'] {
+          font-size: 0.88rem;
+        }
+      }
+
+      .lang-switch__globe {
+        margin-inline-start: 0.25rem;
+        font-size: 1rem;
+      }
+    }
+
+    &__btn {
+      padding: 0.45rem 0.7rem;
+      font-size: 0.82rem;
+
+      &[lang='ar'] {
+        font-size: 0.88rem;
+      }
+    }
+
+    &__globe {
+      margin-inline-start: 0.35rem;
+      font-size: 0.9rem;
+    }
+  }
+}

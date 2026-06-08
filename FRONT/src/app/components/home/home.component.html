@@ -1,0 +1,136 @@
+<div class="layout-wrapper" [class.sidebar-collapsed]="menuState.collapsed()">
+  <app-menu></app-menu>
+  <div class="layout-content">
+    <div class="topbar" [class.topbar-collapsed]="menuState.collapsed()">
+      <div class="topbar-left">
+        <h1 class="topbar-title">{{ currentPageTitle }}</h1>
+      </div>
+
+      <div class="topbar-right topbar-actions">
+        <div class="topbar-notif-wrap">
+          <button
+            type="button"
+            class="topbar-pill topbar-pill--icon"
+            [class.active]="notificationsActive"
+            [attr.aria-label]="notificationBellAria()"
+            (click)="toggleNotifications($event)">
+            <i class="pi pi-bell" aria-hidden="true"></i>
+            <span class="topbar-pill__notif-badge" *ngIf="notificationBadgeLabel">{{ notificationBadgeLabel }}</span>
+          </button>
+
+          <div
+            class="notification-menu"
+            [class.notification-menu--agent]="auth.isAgent()"
+            *ngIf="notificationsActive"
+            (click)="$event.stopPropagation()">
+          <div class="notification-header">
+            <div class="header-left">
+              <h3>{{ notificationsPanelTitle }}</h3>
+              <span class="badge" *ngIf="notificationCount > 0"
+                >{{ notificationCount }} {{ notificationCountUnit() }}</span
+              >
+            </div>
+            <button
+              *ngIf="auth.isAgent() && notificationCount > 0"
+              type="button"
+              class="clear-alerts-btn"
+              [disabled]="agentNotifications.clearing()"
+              (click)="clearAllAgentNotifications($event)">
+              <i class="pi pi-trash" aria-hidden="true"></i>
+              {{ 'home.clearAll' | transloco }}
+            </button>
+          </div>
+
+          <div class="notification-content scrollbar" [class.empty]="notifications.length === 0">
+            <div *ngIf="notifications.length === 0" class="empty-state">
+              <i class="pi pi-bell-slash"></i>
+              <p>{{ auth.isAgent() ? ('home.noNotifications' | transloco) : ('home.noAlerts' | transloco) }}</p>
+            </div>
+
+            <div
+              *ngFor="let notif of notifications"
+              class="notification-item"
+              [class.notification-item--agent]="auth.isAgent()"
+              (click)="openNotification($event, notif)">
+              <div class="notif-icon-container" [ngClass]="notif.type">
+                <i [class]="notif.icon"></i>
+              </div>
+              <div class="notif-body">
+                <div class="notif-title">{{ notif.title }}</div>
+                <div class="notif-ref" *ngIf="auth.isAgent() && notif.numeroBordereau">
+                  {{ 'home.notifSlipRef' | transloco }} <strong>{{ notif.numeroBordereau }}</strong>
+                </div>
+                <div class="notif-message">{{ notif.message }}</div>
+                <div class="notif-time" *ngIf="auth.isAgent() && notif.createdAt">
+                  <i class="pi pi-clock" aria-hidden="true"></i>
+                  {{ formatNotifDate(notif.createdAt) }}
+                </div>
+              </div>
+              <button
+                *ngIf="auth.isAgent() && notif.agentNotificationId != null"
+                type="button"
+                class="notif-dismiss-btn"
+                [attr.aria-label]="'home.deleteNotifAria' | transloco"
+                [disabled]="agentNotifications.clearing()"
+                (click)="clearAgentNotification($event, notif)">
+                <i class="pi pi-times" aria-hidden="true"></i>
+              </button>
+            </div>
+          </div>
+
+          <div class="notification-footer">
+            <a
+              *ngIf="!auth.isAgent()"
+              (click)="viewNotifications(); $event.stopPropagation()"
+              class="view-all-link">
+              {{ 'home.alertsCenter' | transloco }}
+              <i class="pi pi-arrow-right"></i>
+            </a>
+            <a
+              *ngIf="auth.isAgent()"
+              (click)="viewAgentBordereaux(); $event.stopPropagation()"
+              class="view-all-link">
+              {{ 'home.mySlips' | transloco }}
+              <i class="pi pi-arrow-right"></i>
+            </a>
+          </div>
+        </div>
+        </div>
+
+        <app-lang-select variant="topbar" />
+
+        <div
+          class="topbar-pill topbar-pill--profile topbar-profile"
+          (click)="toggleProfileMenu($event)"
+          [class.active]="profileActive">
+          <div class="topbar-pill__profile-info profile-info">
+            <span class="topbar-pill__profile-name profile-name">{{ auth.displayName() }}</span>
+            <span class="topbar-pill__profile-role profile-role">{{ profileRoleLabel() }}</span>
+          </div>
+          <div class="topbar-pill__avatar profile-avatar">
+            <div class="topbar-pill__avatar-icon avatar-placeholder" *ngIf="!useProfileImage" aria-hidden="true">
+              <i class="pi pi-user"></i>
+            </div>
+            <img
+              *ngIf="useProfileImage"
+              src="assets/images/default-avatar.png"
+              [alt]="'home.profileAvatarAlt' | transloco"
+              (error)="handleImageError($event)" />
+          </div>
+
+          <div class="profile-menu" *ngIf="profileActive" (click)="$event.stopPropagation()">
+            <ul>
+              <li><a (click)="viewProfile(); $event.stopPropagation()"><i class="pi pi-user"></i> {{ 'home.myProfile' | transloco }}</a></li>
+              <li class="divider"></li>
+              <li><a (click)="logout(); $event.stopPropagation()"><i class="pi pi-power-off"></i> {{ 'home.logout' | transloco }}</a></li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="layout-main">
+      <router-outlet></router-outlet>
+    </div>
+  </div>
+</div>

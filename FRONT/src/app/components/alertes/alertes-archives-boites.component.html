@@ -1,0 +1,205 @@
+<p-toast position="top-center" [baseZIndex]="15000" />
+
+@if (adminOnly()) {
+  <div class="search-row flex-1 mb-3">
+    <i class="pi pi-search" aria-hidden="true"></i>
+    <input
+      pInputText
+      type="search"
+      class="w-full alertes-input"
+      [placeholder]="'alertes.archivesSearch' | transloco"
+      [ngModel]="searchText()"
+      (ngModelChange)="searchText.set($event); onSearchValueChange()" />
+  </div>
+
+  @if (loading()) {
+    <div class="alertes-cards-loading">
+      <i class="pi pi-spinner pi-spin" aria-hidden="true"></i>
+      <span>{{ 'alertes.archivesLoading' | transloco }}</span>
+    </div>
+  } @else if (cards().length === 0) {
+    <p class="alertes-cards-empty m-0">
+      <i class="pi pi-check-circle mr-2"></i>
+      {{ 'alertes.archivesEmpty' | transloco }}
+    </p>
+  } @else {
+    <div class="alertes-cards-grid">
+      @for (card of cards(); track card.row.boiteId + card.kind) {
+        <article class="alerte-card" [class.alerte-card--urgent]="isUrgent(card)">
+          <div class="alerte-card__top">
+            <i class="pi pi-exclamation-triangle alerte-card__icon" aria-hidden="true"></i>
+            <div class="alerte-card__body">
+              <h5 class="alerte-card__titre m-0">{{ cardTitre(card) }}</h5>
+              <p class="alerte-card__fin m-0">
+                {{ 'alertes.finPrevue' | transloco }}
+                @if (card.kind === 'semi-actif') {
+                  <strong class="alerte-card__fin--warn">{{ 'alertes.indeterminate' | transloco }}</strong>
+                } @else {
+                  <strong>{{ card.row.anneeEcheance }}</strong>
+                }
+              </p>
+              <p class="alerte-card__sub m-0">
+                {{
+                  'alertes.slipAndType'
+                    | transloco: { numero: card.row.numeroBordereau, type: card.row.documentTypeTitle }
+                }}
+              </p>
+            </div>
+          </div>
+          <div class="alerte-card__actions">
+            @if (showKeepButton(card)) {
+              <button
+                type="button"
+                class="alerte-btn alerte-btn--keep"
+                [disabled]="reportingId() === card.row.boiteId"
+                (click)="openKeep(card); $event.stopPropagation()">
+                <i class="pi pi-calendar-plus" aria-hidden="true"></i>
+                {{ 'alertes.reporter' | transloco }}
+              </button>
+            }
+            @if (showPrimaryActionButton(card)) {
+              <button
+                type="button"
+                class="alerte-btn"
+                [class.alerte-btn--destroy]="primaryActionIsDestroy(card)"
+                [class.alerte-btn--transfer]="!primaryActionIsDestroy(card)"
+                [disabled]="approvingId() === card.row.boiteId"
+                (click)="openPrimaryAction(card); $event.stopPropagation()">
+                <i [class]="primaryActionIcon(card)" aria-hidden="true"></i>
+                {{ primaryActionLabel(card) }}
+              </button>
+            }
+          </div>
+        </article>
+      }
+    </div>
+  }
+}
+
+<p-dialog
+  [visible]="reporterDialogVisible()"
+  (visibleChange)="onReporterVisibleChange($event)"
+  [header]="'alertes.reporterTitle' | transloco"
+  [modal]="true"
+  appendTo="body"
+  [blockScroll]="true"
+  [dismissableMask]="true"
+  [closeOnEscape]="true"
+  [style]="{ width: 'min(96vw, 40rem)' }"
+  styleClass="modern-dialog alertes-dialog-portal alertes-confirm-dialog alertes-confirm-dialog--reporter"
+  [closable]="true"
+  [draggable]="false"
+  [resizable]="false">
+  @if (pendingReporterRow(); as row) {
+    <div class="alertes-confirm-dialog__wrap">
+      <div class="alertes-confirm-dialog__shell">
+        <div class="alertes-confirm-dialog__icon-wrap" aria-hidden="true">
+          <i class="pi pi-calendar-plus"></i>
+        </div>
+        <p class="alertes-confirm-dialog__message">
+          {{ 'alertes.reporterMessage' | transloco: { titre: row.boiteTitre } }}
+        </p>
+        <div class="alertes-reporter-field">
+          <label for="reporterYear" class="alertes-reporter-field__label">{{ 'alertes.reporterYearLabel' | transloco }}</label>
+          <p-select
+            inputId="reporterYear"
+            [options]="reporterYearOptions"
+            optionLabel="label"
+            optionValue="value"
+            [ngModel]="selectedReporterYear()"
+            (ngModelChange)="selectedReporterYear.set($event)"
+            [placeholder]="'alertes.reporterYearPlaceholder' | transloco"
+            appendTo="body"
+            class="w-full"></p-select>
+        </div>
+      </div>
+      <div class="alertes-confirm-dialog__actions">
+        <button
+          pButton
+          pRipple
+          type="button"
+          [label]="'common.cancel' | transloco"
+          class="p-button-outlined alertes-confirm-dialog__btn-cancel"
+          (click)="reporterDialogVisible.set(false)"></button>
+        <button
+          pButton
+          pRipple
+          type="button"
+          [label]="'alertes.reporter' | transloco"
+          icon="pi pi-calendar-plus"
+          class="alertes-confirm-dialog__btn-primary"
+          [loading]="reportingId() === row.boiteId"
+          [disabled]="selectedReporterYear() == null"
+          (click)="confirmReporter()"></button>
+      </div>
+    </div>
+  }
+</p-dialog>
+
+<p-dialog
+  [visible]="approuverDialogVisible()"
+  (visibleChange)="onApprouverVisibleChange($event)"
+  [header]="approuverDialogHeader()"
+  [modal]="true"
+  appendTo="body"
+  [blockScroll]="true"
+  [dismissableMask]="true"
+  [closeOnEscape]="true"
+  [style]="{ width: 'min(96vw, 40rem)' }"
+  [styleClass]="
+    'modern-dialog alertes-dialog-portal alertes-confirm-dialog ' +
+    (pendingApproveRow() && isDetruire(pendingApproveRow()!.finalDecision)
+      ? 'alertes-confirm-dialog--destroy'
+      : 'alertes-confirm-dialog--transfer')
+  "
+  [closable]="true"
+  [draggable]="false"
+  [resizable]="false">
+  @if (pendingApproveRow(); as row) {
+    <div class="alertes-confirm-dialog__wrap">
+      <div class="alertes-confirm-dialog__shell">
+        <div class="alertes-confirm-dialog__icon-wrap" aria-hidden="true">
+          <i [class]="isDetruire(row.finalDecision) ? 'pi pi-trash' : 'pi pi-send'"></i>
+        </div>
+        <p class="alertes-confirm-dialog__message">
+          @if (row.semiActiveUnknown) {
+            {{ 'alertes.approveMessageSemiActiveUnknown' | transloco: { titre: row.boiteTitre } }}
+          } @else {
+            {{ 'alertes.approveMessage' | transloco: { titre: row.boiteTitre, annee: row.annee } }}
+          }
+        </p>
+        <p class="alertes-confirm-dialog__hint">
+          @if (row.semiActiveUnknown) {
+            {{ 'alertes.approveSemiActiveUnknownHint' | transloco }}
+          } @else if (isDetruire(row.finalDecision)) {
+            {{ 'alertes.approveDestroyHint' | transloco }}
+          } @else {
+            {{ 'alertes.approveTransferHint' | transloco }}
+          }
+        </p>
+      </div>
+      <div class="alertes-confirm-dialog__actions">
+        <button
+          pButton
+          pRipple
+          type="button"
+          [label]="'common.cancel' | transloco"
+          class="p-button-outlined alertes-confirm-dialog__btn-cancel"
+          (click)="approuverDialogVisible.set(false)"></button>
+        <button
+          pButton
+          pRipple
+          type="button"
+          [label]="isDetruire(row.finalDecision) ? ('alertes.destroy' | transloco) : ('alertes.transfer' | transloco)"
+          [icon]="isDetruire(row.finalDecision) ? 'pi pi-trash' : 'pi pi-send'"
+          [class]="
+            isDetruire(row.finalDecision)
+              ? 'alertes-confirm-dialog__btn-danger'
+              : 'alertes-confirm-dialog__btn-primary'
+          "
+          [loading]="approvingId() === row.boiteId"
+          (click)="confirmApprouver()"></button>
+      </div>
+    </div>
+  }
+</p-dialog>

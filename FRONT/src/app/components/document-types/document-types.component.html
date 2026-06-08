@@ -1,0 +1,276 @@
+<div class="doc-types-host">
+  <p-toast />
+
+  <div class="document-types-page">
+  <section class="card modern-card search-card mb-3">
+    <div class="flex flex-column md:flex-row md:align-items-center justify-content-between gap-3 mb-3">
+      <div class="flex align-items-center gap-3">
+        <div class="header-icon-container">
+          <i class="pi pi-search" aria-hidden="true"></i>
+        </div>
+        <div>
+          <h4 class="section-title section-title--search m-0">{{ 'docTypes.searchTitle' | transloco }}</h4>
+          <p class="card-subtitle m-0 mt-1">{{ 'docTypes.searchSubtitle' | transloco }}</p>
+        </div>
+      </div>
+      <div class="flex gap-2 align-items-center justify-content-end toolbar-icon-group">
+        <button
+          pButton
+          pRipple
+          type="button"
+          icon="pi pi-filter"
+          class="p-button-rounded p-button-text icon-circle-btn"
+          [class.p-button-secondary]="!showFilters()"
+          [class.active-filter]="showFilters()"
+          [pTooltip]="'docTypes.filtersTooltip' | transloco"
+          tooltipPosition="bottom"
+          (click)="toggleFilters()"></button>
+        <button
+          pButton
+          pRipple
+          type="button"
+          icon="pi pi-sort-alt"
+          class="p-button-rounded p-button-text icon-circle-btn"
+          [pTooltip]="sortTooltip()"
+          tooltipPosition="bottom"
+          (click)="cycleSort()"></button>
+        <button
+          pButton
+          pRipple
+          type="button"
+          icon="pi pi-times"
+          class="p-button-rounded p-button-text icon-circle-btn"
+          [pTooltip]="'docTypes.resetSearchTooltip' | transloco"
+          tooltipPosition="bottom"
+          (click)="clearSearch()"></button>
+      </div>
+    </div>
+
+    <div class="flex flex-column gap-3">
+      <div class="search-row flex-1">
+        <i class="pi pi-search" aria-hidden="true"></i>
+        <input
+          pInputText
+          type="search"
+          class="w-full doc-types-input"
+          [placeholder]="'docTypes.searchPlaceholder' | transloco"
+          [ngModel]="searchText()"
+          (ngModelChange)="searchText.set($event); onSearchValueChange()" />
+      </div>
+
+      @if (showFilters()) {
+        <div class="filter-row">
+          <label class="filter-label" for="dirFilter">{{ 'docTypes.colDirection' | transloco }}</label>
+          <p-select
+            inputId="dirFilter"
+            [options]="directionOptions()"
+            [placeholder]="'docTypes.allDirections' | transloco"
+            optionLabel="label"
+            optionValue="id"
+            [showClear]="true"
+            [filter]="true"
+            [filterPlaceholder]="'docTypes.filterDirectionPlaceholder' | transloco"
+            filterBy="label"
+            appendTo="body"
+            scrollHeight="280px"
+            panelStyleClass="doc-types-select-panel"
+            [ngModel]="filterDirectionId()"
+            (ngModelChange)="filterDirectionId.set($event); onFilterDirectionChange()"
+            styleClass="w-full md:w-26rem doc-type-select"></p-select>
+        </div>
+      }
+    </div>
+  </section>
+
+  <section class="card modern-card table-card">
+    <div class="flex align-items-center justify-content-between mb-4 flex-wrap gap-3">
+      <div class="flex align-items-center gap-2 flex-wrap">
+        <div class="header-icon-container header-icon-container--muted">
+          <i class="pi pi-folder-open" aria-hidden="true"></i>
+        </div>
+        <div>
+          <h4 class="section-title m-0">{{ 'docTypes.title' | transloco }}</h4>
+          <span class="badge-count">{{ countLabel() }}</span>
+        </div>
+      </div>
+      <div class="flex gap-2 align-items-center toolbar-icon-group">
+        <button
+          pButton
+          pRipple
+          type="button"
+          icon="pi pi-plus"
+          class="p-button-rounded p-button-text icon-circle-btn icon-circle-btn--primary"
+          [pTooltip]="'docTypes.addTooltip' | transloco"
+          tooltipPosition="bottom"
+          (click)="openCreate()"></button>
+        <button
+          pButton
+          pRipple
+          type="button"
+          icon="pi pi-refresh"
+          class="p-button-rounded p-button-text icon-circle-btn"
+          [pTooltip]="'common.refresh' | transloco"
+          tooltipPosition="bottom"
+          (click)="refreshTable()"></button>
+      </div>
+    </div>
+
+    <p-table
+      #dt
+      [value]="rows()"
+      [lazy]="true"
+      (onLazyLoad)="onLazyLoad($event)"
+      [loading]="loading()"
+      [paginator]="true"
+      [rows]="pageSize"
+      [totalRecords]="totalRecords()"
+      [rowsPerPageOptions]="[10, 20, 30, 50]"
+      [showCurrentPageReport]="true"
+      [currentPageReportTemplate]="pageReportTemplate()"
+      [rowHover]="true"
+      styleClass="modern-table doc-types-table"
+      responsiveLayout="scroll"
+      dataKey="id">
+      <ng-template pTemplate="header">
+        <tr>
+          <th>{{ 'docTypes.typeTitleColumn' | transloco }}</th>
+          <th>{{ 'docTypes.colDirection' | transloco }}</th>
+          <th class="col-actions text-center">{{ 'docTypes.colActions' | transloco }}</th>
+        </tr>
+      </ng-template>
+      <ng-template pTemplate="body" let-row>
+        <tr class="type-row">
+          <td>
+            <div class="type-cell">
+              <span class="type-cell__icon" aria-hidden="true"><i class="pi pi-file"></i></span>
+              <span class="type-cell__title">{{ row.title }}</span>
+            </div>
+          </td>
+          <td>
+            <div class="flex align-items-center gap-2 direction-cell">
+              @if (row.directionLabel) {
+                <span class="badge-direction">
+                  <i class="pi pi-building" aria-hidden="true"></i>
+                  {{ row.directionLabel }}
+                </span>
+              } @else {
+                <span class="direction-none">{{ 'common.emDash' | transloco }}</span>
+              }
+            </div>
+          </td>
+          <td class="text-center col-actions">
+            <button
+              pButton
+              pRipple
+              type="button"
+              icon="pi pi-pencil"
+              class="icon-action icon-action--edit p-button-rounded p-button-text"
+              [pTooltip]="'docTypes.editTooltip' | transloco"
+              tooltipPosition="top"
+              [attr.aria-label]="'docTypes.editAria' | transloco"
+              (click)="openEdit(row)"></button>
+          </td>
+        </tr>
+      </ng-template>
+      <ng-template pTemplate="emptymessage">
+        <tr>
+          <td colspan="3" class="empty-message">
+            <i class="pi pi-info-circle mr-2"></i>
+            {{ 'docTypes.empty' | transloco }}
+          </td>
+        </tr>
+      </ng-template>
+    </p-table>
+  </section>
+  </div>
+
+  <p-dialog
+    [visible]="dialogVisible()"
+    (visibleChange)="dialogVisible.set($event)"
+    [modal]="true"
+    [style]="{ width: 'min(96vw, 58rem)' }"
+    [contentStyle]="{ overflow: 'visible' }"
+    styleClass="modern-dialog doc-types-dialog doc-types-dialog--form"
+    appendTo="body"
+    [draggable]="false"
+    [closable]="true">
+    <ng-template pTemplate="header">
+      <div class="regles-create-head">
+        <div class="regles-create-head__brand">
+          <span class="regles-create-head__icon" aria-hidden="true">
+            <i class="pi pi-file"></i>
+          </span>
+          <div class="regles-create-head__text">
+            <h2 class="regles-create-head__title">{{ dialogTitle() }}</h2>
+            <p class="regles-create-head__subtitle">{{ dialogSubtitle() }}</p>
+          </div>
+        </div>
+      </div>
+    </ng-template>
+
+    <div class="p-fluid regles-create-form">
+      <section class="regles-create-section" aria-labelledby="doc-type-form-heading">
+        <h3 id="doc-type-form-heading" class="regles-create-section__title">
+          <i class="pi pi-file-edit" aria-hidden="true"></i>
+          {{ 'docTypes.formInfo' | transloco }}
+        </h3>
+        <div class="regles-create-section__body">
+          <div class="field regles-create-field">
+            <label for="dtTitle" class="regles-create-label">
+              {{ 'docTypes.typeTitleLabel' | transloco }} <span class="req">*</span>
+            </label>
+            <div class="regles-create-control regles-create-control--plain">
+              <input
+                pInputText
+                id="dtTitle"
+                [(ngModel)]="formTitle"
+                class="w-full doc-types-input regles-create-input"
+                [placeholder]="'docTypes.typeTitlePlaceholder' | transloco" />
+            </div>
+          </div>
+
+          <div class="field regles-create-field">
+            <label for="dtDir" class="regles-create-label">{{ 'docTypes.colDirection' | transloco }}</label>
+            <div class="regles-create-control regles-create-control--select">
+              <p-select
+                inputId="dtDir"
+                [options]="directionOptions()"
+                [(ngModel)]="formDirectionId"
+                [placeholder]="'docTypes.directionPlaceholder' | transloco"
+                optionLabel="label"
+                optionValue="id"
+                [filter]="true"
+                [showClear]="true"
+                [filterPlaceholder]="'docTypes.filterDirectionPlaceholder' | transloco"
+                filterBy="label"
+                appendTo="body"
+                scrollHeight="320px"
+                panelStyleClass="doc-types-select-panel regles-select-panel regles-create-select-panel"
+                styleClass="w-full regles-create-select"></p-select>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <ng-template pTemplate="footer">
+      <div class="regles-create-footer">
+        <button
+          pButton
+          pRipple
+          type="button"
+          [label]="'common.cancel' | transloco"
+          class="p-button-outlined regles-btn-cancel"
+          (click)="dialogVisible.set(false)"></button>
+        <button
+          pButton
+          pRipple
+          type="button"
+          [label]="'common.save' | transloco"
+          icon="pi pi-check"
+          class="regles-btn-save regles-btn-save--create"
+          (click)="save()"></button>
+      </div>
+    </ng-template>
+  </p-dialog>
+</div>

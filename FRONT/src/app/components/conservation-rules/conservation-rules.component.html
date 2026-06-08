@@ -1,0 +1,770 @@
+<div class="regles-host">
+  <p-toast
+    position="top-center"
+    styleClass="regles-toast"
+    appendTo="body"
+    [baseZIndex]="15000" />
+
+  <!-- Confirmation d'invalidation -->
+  <p-dialog
+    [visible]="invalidateConfirmVisible()"
+    (visibleChange)="onInvalidateConfirmVisibleChange($event)"
+    (onHide)="onInvalidateConfirmHide()"
+    [header]="'regles.invalidateConfirmHeader' | transloco"
+    [modal]="true"
+    [closable]="true"
+    [style]="{ width: 'min(96vw, 44rem)' }"
+    styleClass="modern-dialog regles-dialog invalidate-confirm-dialog"
+    [draggable]="false"
+    [resizable]="false">
+    @if (pendingInvalidate(); as invRow) {
+      <div class="invalidate-confirm-body flex flex-column align-items-center text-center gap-4 py-4 px-2">
+        <i class="pi pi-ban invalidate-confirm-icon" aria-hidden="true"></i>
+        <h3 class="invalidate-confirm-title m-0">{{ invalidateConfirmTitle(invRow.reference) }}</h3>
+        <p class="invalidate-confirm-desc m-0 line-height-3">
+          {{ 'regles.invalidateConfirmDesc' | transloco }}
+        </p>
+      </div>
+      <div class="flex justify-content-end gap-2 flex-wrap border-top-1 border-200 pt-3 mt-2">
+        <button
+          pButton
+          pRipple
+          type="button"
+          [label]="'common.cancel' | transloco"
+          icon="pi pi-times"
+          class="p-button-outlined invalidate-btn-cancel"
+          (click)="cancelInvalidateConfirm()"></button>
+        <button
+          pButton
+          pRipple
+          type="button"
+          [label]="'regles.invalidateConfirmYes' | transloco"
+          icon="pi pi-check"
+          class="invalidate-btn-accept"
+          (click)="executeInvalidate()"></button>
+      </div>
+    }
+  </p-dialog>
+
+  <!-- Boîtes liées : choix avant invalidation -->
+  <p-dialog
+    [visible]="invalidateLinkedVisible()"
+    (visibleChange)="onInvalidateLinkedVisibleChange($event)"
+    (onHide)="onInvalidateLinkedHide()"
+    [modal]="true"
+    [closable]="true"
+    [style]="{ width: 'min(96vw, 62rem)' }"
+    styleClass="modern-dialog regles-dialog invalidate-linked-dialog"
+    appendTo="body"
+    [draggable]="false"
+    [resizable]="false">
+    <ng-template pTemplate="header">
+      <div class="invalidate-linked-head">
+        <span class="invalidate-linked-head__icon" aria-hidden="true">
+          <i class="pi pi-box"></i>
+        </span>
+        <h2 id="invalidate-linked-dialog-title" class="invalidate-linked-head__title m-0">
+          {{ 'regles.linkedDialogTitle' | transloco }}
+        </h2>
+      </div>
+    </ng-template>
+    @if (pendingInvalidate(); as invRow) {
+      @if (invalidationPreviewLoading()) {
+        <p class="invalidate-linked-loading m-0 py-4 text-center">{{ 'regles.linkedLoading' | transloco }}</p>
+      } @else if (invalidationPreview(); as preview) {
+        <p class="invalidate-linked-lead m-0 mb-3">
+          {{ linkedLeadText(invRow.reference, preview.documentTypeTitle, preview.totalBoites) }}
+        </p>
+        <div class="invalidate-linked-scroll" role="region" [attr.aria-label]="'regles.linkedListAria' | transloco">
+          @for (br of preview.bordereaux; track br.bordereauId) {
+            <div class="invalidate-linked-bordereau">
+              <h5 class="invalidate-linked-bordereau__title m-0 mb-2">
+                {{ 'regles.linkedSlipTitle' | transloco }}
+                <span class="invalidate-linked-num">{{ br.numeroAffiche }}</span>
+              </h5>
+              <ul class="invalidate-linked-boites m-0">
+                @for (bx of br.boites; track bx.id) {
+                  <li class="invalidate-linked-boite-row">
+                    <span class="invalidate-linked-boite-titre">{{ bx.titre }}</span>
+                    <span class="invalidate-linked-boite-years">{{ bx.anneeMin }} – {{ bx.anneeMax }}</span>
+                  </li>
+                }
+              </ul>
+            </div>
+          }
+        </div>
+        <div class="invalidate-linked-hint" role="note">
+          <i class="pi pi-info-circle invalidate-linked-hint__icon" aria-hidden="true"></i>
+          <p class="invalidate-linked-hint__text m-0">
+            {{ 'regles.linkedHint' | transloco }}
+          </p>
+        </div>
+        <div class="invalidate-linked-footer">
+          <button
+            pButton
+            pRipple
+            type="button"
+            [label]="'common.cancel' | transloco"
+            icon="pi pi-times"
+            class="invalidate-linked-btn invalidate-linked-btn--cancel"
+            (click)="cancelInvalidateLinked()"></button>
+          <button
+            pButton
+            pRipple
+            type="button"
+            [label]="'regles.linkedMigrate' | transloco"
+            icon="pi pi-arrow-right"
+            class="invalidate-linked-btn invalidate-linked-btn--migrate"
+            (click)="migrateBoitesToNewRule()"></button>
+          <button
+            pButton
+            pRipple
+            type="button"
+            [label]="'regles.linkedKeepOld' | transloco"
+            icon="pi pi-history"
+            class="invalidate-linked-btn invalidate-linked-btn--keep"
+            (click)="keepBoitesOnOldRuleAndInvalidate()"></button>
+        </div>
+      }
+    }
+  </p-dialog>
+
+  <!-- Après invalidation : créer une règle de remplacement ? -->
+  <p-dialog
+    [visible]="invalidateFollowupVisible()"
+    (visibleChange)="onInvalidateFollowupVisibleChange($event)"
+    [header]="'regles.followupHeader' | transloco"
+    [modal]="true"
+    [closable]="true"
+    [style]="{ width: 'min(96vw, 44rem)' }"
+    styleClass="modern-dialog regles-dialog invalidate-followup-dialog"
+    [draggable]="false"
+    [resizable]="false">
+    <div class="invalidate-followup-body flex flex-column align-items-center text-center gap-4 py-4 px-2">
+      <i class="pi pi-question-circle invalidate-followup-icon" aria-hidden="true"></i>
+      <p class="invalidate-followup-lead m-0 font-bold">{{ 'regles.followupSuccess' | transloco }}</p>
+      <p class="invalidate-followup-desc m-0 line-height-3">
+        {{ 'regles.followupDesc' | transloco }}
+      </p>
+    </div>
+    <div class="flex justify-content-end gap-2 flex-wrap border-top-1 border-200 pt-3 mt-2">
+      <button
+        pButton
+        pRipple
+        type="button"
+        [label]="'regles.followupNo' | transloco"
+        icon="pi pi-times"
+        class="p-button-outlined invalidate-btn-cancel"
+        (click)="closeInvalidateFollowup(false)"></button>
+      <button
+        pButton
+        pRipple
+        type="button"
+        [label]="'regles.followupYes' | transloco"
+        icon="pi pi-plus"
+        class="invalidate-btn-accept"
+        (click)="closeInvalidateFollowup(true)"></button>
+    </div>
+  </p-dialog>
+
+  <div class="conservation-rules-page">
+    <section class="card modern-card search-card mb-3">
+      <div class="flex flex-column md:flex-row md:align-items-center justify-content-between gap-3 mb-3">
+        <div class="flex align-items-center gap-3">
+          <div class="header-icon-container">
+            <i class="pi pi-search" aria-hidden="true"></i>
+          </div>
+          <div>
+            <h4 class="section-title section-title--search m-0">{{ 'regles.searchTitle' | transloco }}</h4>
+            @if (!showFilters()) {
+              <p class="card-subtitle m-0 mt-1">
+                {{ 'regles.searchSubtitleDefault' | transloco }}
+              </p>
+            } @else {
+              <p class="card-subtitle m-0 mt-1">{{ 'regles.searchSubtitleFilters' | transloco }}</p>
+            }
+          </div>
+        </div>
+        <div class="flex gap-2 align-items-center justify-content-end toolbar-icon-group">
+          <button
+            pButton
+            pRipple
+            type="button"
+            icon="pi pi-filter"
+            class="p-button-rounded p-button-text icon-circle-btn"
+            [class.p-button-secondary]="!showFilters()"
+            [class.active-filter]="showFilters()"
+            [pTooltip]="'regles.filtersTooltip' | transloco"
+            tooltipPosition="bottom"
+            (click)="toggleFilters()"></button>
+          <button
+            pButton
+            pRipple
+            type="button"
+            icon="pi pi-sort-alt"
+            class="p-button-rounded p-button-text icon-circle-btn"
+            [pTooltip]="sortTooltip()"
+            tooltipPosition="bottom"
+            (click)="cycleSort()"></button>
+          <button
+            pButton
+            pRipple
+            type="button"
+            icon="pi pi-times"
+            class="p-button-rounded p-button-text icon-circle-btn"
+            [pTooltip]="'regles.resetSearchTooltip' | transloco"
+            tooltipPosition="bottom"
+            (click)="clearSearch()"></button>
+        </div>
+      </div>
+
+      <div class="flex flex-column gap-3">
+        <div class="search-row flex-1">
+          <i class="pi pi-search" aria-hidden="true"></i>
+          <input
+            pInputText
+            type="search"
+            class="w-full regles-input"
+            [placeholder]="'regles.searchPlaceholder' | transloco"
+            [ngModel]="searchText()"
+            (ngModelChange)="searchText.set($event); onSearchValueChange()" />
+        </div>
+
+        @if (showFilters()) {
+          <div class="filters-grid">
+            <div class="filter-row">
+              <label class="filter-label" for="statusFilter">{{ 'regles.colStatus' | transloco }}</label>
+              <p-select
+                inputId="statusFilter"
+                [options]="statusFilterOptions"
+                [placeholder]="'regles.allStatuses' | transloco"
+                optionLabel="label"
+                optionValue="value"
+                [showClear]="true"
+                appendTo="body"
+                scrollHeight="280px"
+                panelStyleClass="doc-types-select-panel regles-select-panel"
+                [ngModel]="filterStatus()"
+                (ngModelChange)="filterStatus.set($event ?? ''); onFilterStatusChange()"
+                styleClass="w-full md:w-26rem regles-select"></p-select>
+            </div>
+            <div class="filter-row">
+              <label class="filter-label" for="finalDecisionFilter">{{ 'regles.colFinalDecision' | transloco }}</label>
+              <p-select
+                inputId="finalDecisionFilter"
+                [options]="finalDecisionFilterOptions"
+                [placeholder]="'regles.allDecisions' | transloco"
+                optionLabel="label"
+                optionValue="value"
+                [showClear]="true"
+                appendTo="body"
+                scrollHeight="280px"
+                panelStyleClass="doc-types-select-panel regles-select-panel"
+                [ngModel]="filterFinalDecision()"
+                (ngModelChange)="filterFinalDecision.set($event ?? ''); onFilterFinalDecisionChange()"
+                styleClass="w-full md:w-26rem regles-select"></p-select>
+            </div>
+          </div>
+        }
+      </div>
+    </section>
+
+    <section class="card modern-card table-card">
+      <div class="flex align-items-center justify-content-between mb-4 flex-wrap gap-3">
+        <div class="flex align-items-center gap-2 flex-wrap">
+          <div class="header-icon-container header-icon-container--muted">
+            <i class="pi pi-list" aria-hidden="true"></i>
+          </div>
+          <div>
+            <h4 class="section-title m-0">{{ 'regles.tableTitle' | transloco }}</h4>
+            <span class="badge-count">{{ countLabel() }}</span>
+          </div>
+        </div>
+        <div class="flex gap-2 align-items-center toolbar-icon-group">
+          <button
+            pButton
+            pRipple
+            type="button"
+            icon="pi pi-plus"
+            class="p-button-rounded p-button-text icon-circle-btn icon-circle-btn--primary"
+            [pTooltip]="'regles.newRuleTooltip' | transloco"
+            tooltipPosition="bottom"
+            (click)="openCreate()"></button>
+          <button
+            pButton
+            pRipple
+            type="button"
+            icon="pi pi-refresh"
+            class="p-button-rounded p-button-text icon-circle-btn"
+            [pTooltip]="'common.refresh' | transloco"
+            tooltipPosition="bottom"
+            (click)="refreshTable()"></button>
+        </div>
+      </div>
+
+      <p-table
+        #dt
+        [value]="rows()"
+        [lazy]="true"
+        (onLazyLoad)="onLazyLoad($event)"
+        [loading]="loading()"
+        [paginator]="true"
+        [rows]="pageSize"
+        [totalRecords]="totalRecords()"
+        [rowsPerPageOptions]="[10, 20, 30, 50]"
+        [showCurrentPageReport]="true"
+        [currentPageReportTemplate]="pageReportTemplate()"
+        [rowHover]="true"
+        styleClass="modern-table regles-table"
+        responsiveLayout="scroll"
+        dataKey="id">
+        <ng-template pTemplate="header">
+          <tr>
+            <th>{{ 'regles.colReference' | transloco }}</th>
+            <th>{{ 'regles.colDocType' | transloco }}</th>
+            <th>{{ 'regles.colActiveDuration' | transloco }}</th>
+            <th>{{ 'regles.colSemiActiveDuration' | transloco }}</th>
+            <th>{{ 'regles.colDecision' | transloco }}</th>
+            <th>{{ 'regles.colStatus' | transloco }}</th>
+            <th class="col-actions text-center">{{ 'regles.colActions' | transloco }}</th>
+          </tr>
+        </ng-template>
+        <ng-template pTemplate="body" let-row>
+          <tr class="rule-row">
+            <td>
+              <span class="ref-badge">{{ row.reference }}</span>
+            </td>
+            <td>
+              <div class="type-cell">
+                <span class="type-cell__icon" aria-hidden="true"><i class="pi pi-file"></i></span>
+                <span class="type-cell__title">{{ typeLabel(row) }}</span>
+              </div>
+            </td>
+            <td>
+              <span class="duration-value">{{ formatActive(row) }}</span>
+            </td>
+            <td>
+              <span class="duration-value" [class.duration-value--empty]="formatSemiActive(row) === emDash()">
+                {{ formatSemiActive(row) }}
+              </span>
+            </td>
+            <td>
+              <span [class]="decisionClass(row.finalDecision)">{{ decisionLabel(row.finalDecision) }}</span>
+            </td>
+            <td>
+              <span [class]="statusClass(row.status)">
+                <span class="status-badge__dot" aria-hidden="true"></span>
+                {{ statusLabel(row.status) }}
+              </span>
+            </td>
+            <td class="col-actions text-center">
+              <div class="regles-actions-row">
+                <button
+                  pButton
+                  pRipple
+                  type="button"
+                  icon="pi pi-eye"
+                  class="icon-action icon-action--view p-button-rounded p-button-text"
+                  [pTooltip]="'common.consult' | transloco"
+                  tooltipPosition="top"
+                  [attr.aria-label]="'common.consult' | transloco"
+                  (click)="openView(row)"></button>
+                <button
+                  pButton
+                  pRipple
+                  type="button"
+                  icon="pi pi-ban"
+                  class="icon-action icon-action--invalidate p-button-rounded p-button-text"
+                  [pTooltip]="'regles.invalidateTooltip' | transloco"
+                  tooltipPosition="top"
+                  [attr.aria-label]="'regles.invalidateAria' | transloco"
+                  [disabled]="!isRuleValid(row)"
+                  (click)="openInvalidateConfirm(row)"></button>
+              </div>
+            </td>
+          </tr>
+        </ng-template>
+        <ng-template pTemplate="emptymessage">
+          <tr>
+            <td colspan="7" class="empty-message">
+              <i class="pi pi-info-circle mr-2"></i>
+              {{ 'regles.empty' | transloco }}
+            </td>
+          </tr>
+        </ng-template>
+      </p-table>
+    </section>
+  </div>
+
+  <!-- Création -->
+  <p-dialog
+    [visible]="dialogVisible()"
+    (visibleChange)="onCreateDialogVisibleChange($event)"
+    [modal]="true"
+    [style]="{ width: 'min(96vw, 58rem)' }"
+    [contentStyle]="{ overflow: 'visible' }"
+    styleClass="modern-dialog regles-dialog regles-dialog--create"
+    appendTo="body"
+    [draggable]="false"
+    [closable]="true">
+    <ng-template pTemplate="header">
+      <div class="regles-create-head">
+        <div class="regles-create-head__brand">
+          <span class="regles-create-head__icon" aria-hidden="true">
+            <i class="pi pi-shield"></i>
+          </span>
+          <div class="regles-create-head__text">
+            <h2 class="regles-create-head__title">{{ createDialogTitle() }}</h2>
+            <p class="regles-create-head__subtitle">{{ createDialogSubtitle() }}</p>
+          </div>
+        </div>
+      </div>
+    </ng-template>
+
+    <div class="p-fluid regles-create-form">
+      @if (pendingReplacementSourceRule(); as src) {
+        <p class="regles-replacement-banner m-0">
+          <i class="pi pi-info-circle" aria-hidden="true"></i>
+          {{ replacementBannerText(src.reference) }}
+        </p>
+      }
+
+      <section class="regles-create-section" aria-labelledby="regles-create-ident-heading">
+        <h3 id="regles-create-ident-heading" class="regles-create-section__title">
+          <i class="pi pi-id-card" aria-hidden="true"></i>
+          {{ 'regles.sectionIdentification' | transloco }}
+        </h3>
+        <div class="regles-create-section__body">
+          <div class="field regles-create-field" [class.regles-readonly-stack--locked]="isCreateIdentificationLocked()">
+            <div class="regles-readonly-field-group">
+              <label for="crRef" class="regles-create-label">
+                {{ 'regles.referenceLabel' | transloco }} <span class="req">*</span>
+                @if (isCreateIdentificationLocked()) {
+                  <span class="regles-locked-badge">{{ 'regles.readOnlyBadge' | transloco }}</span>
+                }
+              </label>
+              <div class="regles-readonly-control-shell regles-create-control regles-create-control--plain">
+                <input
+                  pInputText
+                  id="crRef"
+                  [(ngModel)]="formReference"
+                  class="w-full regles-input regles-create-input"
+                  [class.regles-input-readonly]="isCreateIdentificationLocked()"
+                  [readonly]="isCreateIdentificationLocked()"
+                  [disabled]="isCreateIdentificationLocked()"
+                  [attr.tabindex]="isCreateIdentificationLocked() ? -1 : null"
+                  [attr.aria-readonly]="isCreateIdentificationLocked()" />
+                @if (isCreateIdentificationLocked()) {
+                  <div class="regles-readonly-hover-curtain" aria-hidden="true">
+                    <i class="pi pi-ban regles-readonly-ban-icon"></i>
+                  </div>
+                }
+              </div>
+            </div>
+          </div>
+
+          <div class="field regles-create-field" [class.regles-readonly-stack--locked]="isCreateIdentificationLocked()">
+            <div class="regles-readonly-field-group">
+              <label for="crType" class="regles-create-label">
+                {{ 'regles.docTypeLabel' | transloco }} <span class="req">*</span>
+                @if (isCreateIdentificationLocked()) {
+                  <span class="regles-locked-badge">{{ 'regles.readOnlyBadge' | transloco }}</span>
+                }
+              </label>
+              <div class="regles-readonly-control-shell regles-readonly-control-shell--multi regles-create-control regles-create-control--select">
+                <p-select
+                  inputId="crType"
+                  [options]="documentTypeOptions()"
+                  [(ngModel)]="formDocumentTypeId"
+                  optionLabel="title"
+                  optionValue="id"
+                  [placeholder]="'regles.chooseTypePlaceholder' | transloco"
+                  [filter]="!isCreateIdentificationLocked()"
+                  [filterPlaceholder]="'regles.filterPlaceholder' | transloco"
+                  [showClear]="!isCreateIdentificationLocked()"
+                  [disabled]="isCreateIdentificationLocked()"
+                  appendTo="body"
+                  scrollHeight="280px"
+                  panelStyleClass="doc-types-select-panel regles-select-panel regles-create-select-panel"
+                  [styleClass]="
+                    'w-full regles-select regles-create-select' +
+                    (isCreateIdentificationLocked() ? ' regles-select--locked' : '')
+                  "></p-select>
+                @if (isCreateIdentificationLocked()) {
+                  <div class="regles-readonly-hover-curtain" aria-hidden="true">
+                    <i class="pi pi-ban regles-readonly-ban-icon"></i>
+                  </div>
+                }
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="regles-create-section" aria-labelledby="regles-create-conserv-heading">
+        <h3 id="regles-create-conserv-heading" class="regles-create-section__title">
+          <i class="pi pi-clock" aria-hidden="true"></i>
+          {{ 'regles.sectionConservation' | transloco }}
+        </h3>
+        <div
+          class="regles-create-section__body regles-create-section__body--conservation"
+          [class.regles-create-section__body--conservation-triple]="showSemiActiveSection()">
+          <div class="field regles-create-field regles-conservation-col regles-create-field--decision">
+            <div class="regles-duration-field__head regles-duration-field__head--label-only">
+              <label for="crDec" class="regles-create-label m-0">{{ 'regles.colFinalDecision' | transloco }} <span class="req">*</span></label>
+            </div>
+            <div class="regles-conservation-control">
+              <p-select
+                inputId="crDec"
+                [options]="finalDecisionOptions"
+                [(ngModel)]="formFinalDecision"
+                (ngModelChange)="onFinalDecisionChange($event)"
+                optionLabel="label"
+                optionValue="value"
+                [placeholder]="'regles.choosePlaceholder' | transloco"
+                appendTo="body"
+                scrollHeight="280px"
+                panelStyleClass="doc-types-select-panel regles-select-panel regles-create-select-panel"
+                styleClass="w-full regles-select regles-create-select"></p-select>
+            </div>
+          </div>
+
+          <div
+            class="field regles-create-field regles-conservation-col regles-duration-field"
+            [class.regles-duration-field--unknown]="formActiveUnknown">
+            <div class="regles-duration-field__head">
+              <label for="crActive" class="regles-create-label m-0">{{ 'regles.activeYearsLabel' | transloco }} <span class="req">*</span></label>
+              <label
+                class="regles-unknown-chip"
+                [class.regles-unknown-chip--active]="formActiveUnknown"
+                for="crActiveUnk">
+                <p-checkbox
+                  [(ngModel)]="formActiveUnknown"
+                  (ngModelChange)="onActiveUnknownChange($event)"
+                  [binary]="true"
+                  inputId="crActiveUnk" />
+                <span>{{ 'common.unknownDuration' | transloco }}</span>
+              </label>
+            </div>
+            <div class="regles-conservation-control">
+              <div class="regles-duration-unknown-shell" [class.regles-duration-unknown-shell--locked]="formActiveUnknown">
+                <p-inputNumber
+                  inputId="crActive"
+                  [(ngModel)]="formActiveYears"
+                  [readonly]="formActiveUnknown"
+                  [min]="0"
+                  [showButtons]="!formActiveUnknown"
+                  styleClass="w-full regles-inputnumber regles-create-inputnumber"
+                  [useGrouping]="false"
+                  [attr.title]="formActiveUnknown ? unknownInputDisabledTitle() : null"
+                  [attr.tabindex]="formActiveUnknown ? -1 : null"></p-inputNumber>
+                @if (formActiveUnknown) {
+                  <div class="regles-duration-unknown-curtain" aria-hidden="true">
+                    <i class="pi pi-lock regles-duration-unknown-ban-icon" aria-hidden="true"></i>
+                    <span class="regles-duration-unknown-curtain__label">{{ 'regles.inputBlocked' | transloco }}</span>
+                  </div>
+                }
+              </div>
+            </div>
+          </div>
+
+          @if (showSemiActiveSection()) {
+            <div
+              class="field regles-create-field regles-conservation-col regles-duration-field"
+              [class.regles-duration-field--unknown]="formSemiActiveUnknown">
+              <div class="regles-duration-field__head">
+                <label for="crSemi" class="regles-create-label m-0">{{ 'regles.semiActiveYearsLabel' | transloco }} <span class="req">*</span></label>
+                <label
+                  class="regles-unknown-chip"
+                  [class.regles-unknown-chip--active]="formSemiActiveUnknown"
+                  for="crSemiUnk">
+                  <p-checkbox
+                    [(ngModel)]="formSemiActiveUnknown"
+                    (ngModelChange)="onSemiActiveUnknownChange($event)"
+                    [binary]="true"
+                    inputId="crSemiUnk" />
+                  <span>{{ 'common.unknownDuration' | transloco }}</span>
+                </label>
+              </div>
+              <div class="regles-conservation-control">
+                <div class="regles-duration-unknown-shell" [class.regles-duration-unknown-shell--locked]="formSemiActiveUnknown">
+                  <p-inputNumber
+                    inputId="crSemi"
+                    [(ngModel)]="formSemiActiveYears"
+                    [readonly]="formSemiActiveUnknown"
+                    [min]="0"
+                    [showButtons]="!formSemiActiveUnknown"
+                    styleClass="w-full regles-inputnumber regles-create-inputnumber"
+                    [useGrouping]="false"
+                    [attr.title]="formSemiActiveUnknown ? unknownInputDisabledTitle() : null"
+                    [attr.tabindex]="formSemiActiveUnknown ? -1 : null"></p-inputNumber>
+                  @if (formSemiActiveUnknown) {
+                    <div class="regles-duration-unknown-curtain" aria-hidden="true">
+                      <i class="pi pi-lock regles-duration-unknown-ban-icon" aria-hidden="true"></i>
+                      <span class="regles-duration-unknown-curtain__label">{{ 'regles.inputBlocked' | transloco }}</span>
+                    </div>
+                  }
+                </div>
+              </div>
+            </div>
+          }
+        </div>
+      </section>
+    </div>
+
+    <ng-template pTemplate="footer">
+      <div class="regles-create-footer">
+        <button
+          pButton
+          pRipple
+          type="button"
+          [label]="'common.cancel' | transloco"
+          class="p-button-outlined regles-btn-cancel"
+          (click)="dialogVisible.set(false)"></button>
+        <button
+          pButton
+          pRipple
+          type="button"
+          [label]="'common.save' | transloco"
+          icon="pi pi-check"
+          class="modern-button regles-btn-save regles-btn-save--create"
+          (click)="save()"></button>
+      </div>
+    </ng-template>
+  </p-dialog>
+
+  <!-- Consultation — détail règle -->
+  <p-dialog
+    [visible]="viewDialogVisible()"
+    (visibleChange)="onViewDialogVisibleChange($event)"
+    [modal]="true"
+    appendTo="body"
+    [blockScroll]="true"
+    [dismissableMask]="true"
+    [closeOnEscape]="true"
+    [style]="{ width: 'min(96vw, 46rem)' }"
+    styleClass="modern-dialog regles-dialog regles-dialog--create regles-dialog--rule-details"
+    [draggable]="false"
+    [resizable]="false"
+    [closable]="true">
+    @if (viewRow(); as vr) {
+      <ng-template pTemplate="header">
+        <div class="rule-details-head">
+          <div class="rule-details-head__brand">
+            <span class="rule-details-head__icon" aria-hidden="true">
+              <i class="pi pi-eye"></i>
+            </span>
+            <div class="rule-details-head__text">
+              <h2 class="rule-details-head__title m-0">{{ 'regles.viewTitle' | transloco }}</h2>
+              <p class="rule-details-head__subtitle m-0">{{ 'regles.viewSubtitle' | transloco }}</p>
+            </div>
+          </div>
+        </div>
+      </ng-template>
+
+      <div class="rule-details">
+        <div class="rule-details-hero">
+          <div class="rule-details-hero__main">
+            <span class="rule-details-hero__icon" aria-hidden="true">
+              <i class="pi pi-bookmark"></i>
+            </span>
+            <div class="rule-details-hero__text">
+              <span class="rule-details__label">{{ 'regles.referenceLabel' | transloco }}</span>
+              <span class="rule-details-hero__reference">{{ vr.reference }}</span>
+            </div>
+          </div>
+          <span class="rule-details-hero__status" [class]="statusClass(vr.status)">
+            {{ statusLabel(vr.status) }}
+          </span>
+        </div>
+
+        <section class="regles-create-section rule-details-section" aria-labelledby="rule-details-type-heading">
+          <h3 id="rule-details-type-heading" class="regles-create-section__title">
+            <i class="pi pi-file" aria-hidden="true"></i>
+            {{ 'regles.colDocType' | transloco }}
+          </h3>
+          <div class="regles-create-section__body">
+            <div class="rule-details-type-chip">
+              <i class="pi pi-folder-open" aria-hidden="true"></i>
+              <span>{{ typeLabel(vr) }}</span>
+            </div>
+          </div>
+        </section>
+
+        <section class="regles-create-section rule-details-section" aria-labelledby="rule-details-policy-heading">
+          <h3 id="rule-details-policy-heading" class="regles-create-section__title">
+            <i class="pi pi-sliders-h" aria-hidden="true"></i>
+            {{ 'regles.sectionPolicy' | transloco }}
+          </h3>
+          <div class="regles-create-section__body rule-details-policy-grid">
+            <div class="rule-details-policy-item">
+              <span class="rule-details__label">{{ 'regles.colFinalDecision' | transloco }}</span>
+              <span [class]="decisionClass(vr.finalDecision) + ' rule-details__decision-pill'">
+                {{ decisionLabel(vr.finalDecision) }}
+              </span>
+            </div>
+            <div class="rule-details-policy-item">
+              <span class="rule-details__label">{{ 'regles.colStatus' | transloco }}</span>
+              <span
+                class="rule-details__status"
+                [class.rule-details__status--valid]="vr.status === 'VALIDE'"
+                [class.rule-details__status--invalid]="vr.status !== 'VALIDE'">
+                <i
+                  class="pi"
+                  [class.pi-check-circle]="vr.status === 'VALIDE'"
+                  [class.pi-times-circle]="vr.status !== 'VALIDE'"
+                  aria-hidden="true"></i>
+                {{ statusLabel(vr.status) }}
+              </span>
+            </div>
+          </div>
+        </section>
+
+        <section class="regles-create-section rule-details-section" aria-labelledby="rule-details-durations-heading">
+          <h3 id="rule-details-durations-heading" class="regles-create-section__title">
+            <i class="pi pi-clock" aria-hidden="true"></i>
+            {{ 'regles.sectionDurations' | transloco }}
+          </h3>
+          <div class="regles-create-section__body">
+            <div class="rule-details__periods-grid">
+              <div class="rule-details__period-card rule-details__period-card--active">
+                <span class="rule-details__period-icon" aria-hidden="true">
+                  <i class="pi pi-bolt"></i>
+                </span>
+                <span class="rule-details__period-label">{{ 'regles.durationActive' | transloco }}</span>
+                <span class="rule-details__period-value">{{ durationCardValue(vr, 'active') }}</span>
+              </div>
+              <div class="rule-details__period-card rule-details__period-card--semi">
+                <span class="rule-details__period-icon" aria-hidden="true">
+                  <i class="pi pi-history"></i>
+                </span>
+                <span class="rule-details__period-label">{{ 'regles.durationSemiActive' | transloco }}</span>
+                <span class="rule-details__period-value">{{ durationCardValue(vr, 'semi') }}</span>
+              </div>
+              <div class="rule-details__period-card rule-details__period-card--total">
+                <span class="rule-details__period-icon" aria-hidden="true">
+                  <i class="pi pi-calendar"></i>
+                </span>
+                <span class="rule-details__period-label">{{ 'regles.durationTotal' | transloco }}</span>
+                <span class="rule-details__period-value">{{ durationCardValue(vr, 'total') }}</span>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <ng-template pTemplate="footer">
+        <div class="regles-create-footer rule-details__footer">
+          <button
+            pButton
+            pRipple
+            type="button"
+            [label]="'common.close' | transloco"
+            icon="pi pi-times"
+            class="p-button-outlined regles-btn-cancel rule-details__close-btn"
+            (click)="viewDialogVisible.set(false)"></button>
+        </div>
+      </ng-template>
+    }
+  </p-dialog>
+</div>

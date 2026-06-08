@@ -1,0 +1,29 @@
+/* Modale « Créer un épi » — réutilise la charte regles-create-dialog */
+::ng-deep .epi-create-dialog.regles-dialog--create {
+  .epi-create-head__icon {
+    color: #0f766e;
+    background: linear-gradient(145deg, #ccfbf1 0%, #99f6e4 100%);
+    box-shadow: 0 4px 14px rgba(13, 148, 136, 0.2);
+  }
+
+  .epi-create-max-hint {
+    display: inline-block;
+    margin-left: 0.25rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: #64748b;
+    text-transform: none;
+    letter-spacing: 0;
+  }
+
+  .epi-create-field--default {
+    .regles-create-inputnumber ::ng-deep .p-inputnumber-input {
+      background: #f0fdfa !important;
+      border-color: #99f6e4 !important;
+    }
+  }
+
+  .regles-readonly-hover-curtain {
+    border-radius: 12px;
+  }
+}

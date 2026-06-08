@@ -1,0 +1,141 @@
+<div class="grid profile-container" style="background: var(--gray-100); min-height: calc(100vh - 70px); padding: 1.5rem;">
+  <div class="col-12 lg:col-8">
+    <div class="card p-5 border-round-xl shadow-2 profile-main-card" style="background: var(--gray-50); border: 1px solid var(--gray-200);">
+      <div class="surface-section profile-details-surface">
+        <div class="flex justify-content-between align-items-center mb-3">
+          <div class="section-title">{{ 'profile.about' | transloco }}</div>
+          <div>
+            <button
+              *ngIf="!isEditing"
+              pButton
+              pRipple
+              [label]="'common.edit' | transloco"
+              icon="pi pi-pencil"
+              class="p-button-outlined p-button-sm mr-2"
+              [style.background]="'#ffffff'"
+              [style.color]="'#111827'"
+              [style.borderColor]="'#d1d5db'"
+              [disabled]="loading"
+              (click)="toggleEdit()"></button>
+            <button
+              *ngIf="isEditing"
+              pButton
+              pRipple
+              [label]="'common.save' | transloco"
+              icon="pi pi-check"
+              class="p-button-success p-button-sm mr-2 edit-action-btn"
+              [style.background]="'#ffffff'"
+              [style.color]="'#111827'"
+              [style.borderColor]="'#d1d5db'"
+              [disabled]="saving"
+              (click)="saveProfile()"></button>
+            <button
+              *ngIf="isEditing"
+              pButton
+              pRipple
+              [label]="'common.cancel' | transloco"
+              icon="pi pi-times"
+              class="p-button-secondary p-button-text p-button-sm edit-action-btn"
+              [style.background]="'#ffffff'"
+              [style.color]="'#111827'"
+              [style.borderColor]="'#d1d5db'"
+              [disabled]="saving"
+              (click)="toggleEdit()"></button>
+          </div>
+        </div>
+        <div *ngIf="successMessage" class="feedback-success mb-3">{{ successMessage }}</div>
+        <div *ngIf="errorMessage" class="feedback-error mb-3">{{ errorMessage }}</div>
+
+        <div class="flex justify-content-between align-items-center mb-4 pb-3 border-top-1 surface-border">
+          <div class="info-title">{{ 'profile.personalInfo' | transloco }}</div>
+        </div>
+
+        <ul class="list-none p-0 m-0">
+          <li class="flex align-items-center py-3 px-3 list-item flex-wrap">
+            <div class="left-label w-6 md:w-3">
+              <i class="pi pi-user mr-2 text-blue-500"></i>{{ 'profile.userName' | transloco }}
+            </div>
+            <div class="left-value w-full md:w-9 md:flex-order-0 flex-order-1 profile-readonly-value">
+              {{ profile.userName || '—' }}
+              <span class="profile-locked-badge">
+                <i class="pi pi-lock" aria-hidden="true"></i>
+                {{ 'profile.userNameLocked' | transloco }}
+              </span>
+            </div>
+          </li>
+
+          <li class="flex align-items-center py-3 px-3 list-item border-top-1 surface-border flex-wrap">
+            <div class="left-label w-6 md:w-3">
+              <i class="pi pi-envelope mr-2 text-blue-500"></i>{{ 'profile.email' | transloco }}
+            </div>
+            <div class="left-value w-full md:w-9 md:flex-order-0 flex-order-1" *ngIf="!isEditing">
+              {{ profile.email || '—' }}
+            </div>
+            <div class="w-full md:w-9 md:flex-order-0 flex-order-1" *ngIf="isEditing">
+              <input
+                pInputText
+                type="text"
+                class="w-full"
+                [style.background]="'#ffffff'"
+                [style.color]="'#111827'"
+                [style.borderColor]="'#d1d5db'"
+                [(ngModel)]="editedProfile.email"
+                [disabled]="saving"
+                [placeholder]="'profile.emailPlaceholder' | transloco" />
+            </div>
+          </li>
+
+          <li class="flex align-items-center py-3 px-3 list-item border-top-1 surface-border flex-wrap">
+            <div class="left-label w-6 md:w-3">
+              <i class="pi pi-mobile mr-2 text-blue-500"></i>{{ 'profile.phoneNumber' | transloco }}
+            </div>
+            <div class="left-value w-full md:w-9 md:flex-order-0 flex-order-1" *ngIf="!isEditing">
+              {{ profile.phoneNumber || '—' }}
+            </div>
+            <div class="w-full md:w-9 md:flex-order-0 flex-order-1" *ngIf="isEditing">
+              <input
+                pInputText
+                type="text"
+                class="w-full"
+                [style.background]="'#ffffff'"
+                [style.color]="'#111827'"
+                [style.borderColor]="'#d1d5db'"
+                [(ngModel)]="editedProfile.phoneNumber"
+                [disabled]="saving"
+                [placeholder]="'profile.phonePlaceholder' | transloco" />
+            </div>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-12 lg:col-4">
+    <div pRipple class="mb-4">
+      <div class="px-4 py-5 shadow-4 flex flex-column align-items-center justify-content-center" [ngStyle]="{ borderRadius: '1rem', background: 'linear-gradient(to bottom, #60a5fa 0%, #2483f7 100%)' }">
+        <div class="text-center w-full flex flex-column align-items-center">
+          <img
+            src="assets/images/profil.png"
+            [attr.alt]="'profile.avatarAlt' | transloco"
+            class="w-8rem h-8rem border-circle mb-3 border-2 border-white shadow-2"
+            (error)="handleImageError($event)" />
+          <div class="profile-username text-white font-semibold text-xl capitalize">
+            {{ profile.userName || ('profile.defaultUser' | transloco) }}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="flex justify-content-between mb-3">
+        <div>
+          <span class="block role-label mb-3">{{ 'profile.role' | transloco }}</span>
+          <div class="role-value">{{ displayRole() }}</div>
+        </div>
+        <div class="flex align-items-center justify-content-center border-round" style="width: 2.5rem; height: 2.5rem; background: var(--primary-08);">
+          <i class="pi pi-shield text-blue-500 text-xl" style="color: var(--primary) !important;"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
