@@ -33,6 +33,16 @@ import { addQuery } from '../../core/http/http-query';
 import { environment } from '../../../environments/environment';
 import { AppTranslateService } from '../../core/i18n/app-translate.service';
 import { MenuStateService } from '../../services/menu-state.service';
+import { Epi3dViewComponent } from './epi-3d-view.component';
+import type {
+  BlocBoiteSummary,
+  BlocDto,
+  EpiMatrixDto,
+  EpiSummary,
+  TabletteCellDto,
+} from './emplacement-matrix.models';
+
+export type { BlocBoiteSummary, BlocDto, EpiMatrixDto, EpiSummary, TabletteCellDto };
 
 interface EpiListPage {
   content: EpiSummary[];
@@ -43,38 +53,15 @@ interface EpiListPage {
   totalLinearCm: number;
 }
 
-/** Réponse API alignée sur {@code EpiSummaryDto}. */
-export interface EpiSummary {
-  id: string;
-  numero: string;
-  type: string;
-  traversCount: number;
-  tabletteRows: number;
-  blocsPerTablette: number;
-  blocLinearCm: number;
-  totalLinearCm: number;
-}
-
 interface EpiBulkImportResult {
   createdCount: number;
   numeros: string[];
 }
 
-export interface BlocBoiteSummary {
-  id: number;
-  titre: string;
-  anneeMin: number;
-  anneeMax: number;
-  metrageCm: number;
-  documentTypeTitle: string | null;
-  motsCles: string | null;
-  /** N° affiché du bordereau (API JSON : bordereauNumeroAffiche). */
-  bordereauNumeroAffiche?: string | null;
-  bordereauId?: number | null;
-  bordereauBoiteCount?: number;
-  /** Au moins 2 boîtes du bordereau non regroupées sur l’épi. */
-  bordereauBoitesNonContigues?: boolean;
-}
+/** Segment affiché dans la bande de blocs (carte seule ou fusion de n blocs d’une même boîte). */
+export type BlocStripSegment =
+  | { kind: 'empty'; bloc: BlocDto }
+  | { kind: 'occupied'; blocs: BlocDto[]; fused: boolean };
 
 interface BordereauDetailForBoite {
   id: number;
@@ -84,45 +71,18 @@ interface BordereauDetailForBoite {
   boites?: unknown[];
 }
 
-export interface BlocDto {
-  id: string;
-  positionIndex: number;
-  /** Code auto : épi + travée + ligne + bloc (ex. 01111). */
-  numero: string;
-  /** null = bloc libre */
-  boiteId: number | null;
-  boite: BlocBoiteSummary | null;
-}
-
-/** Segment affiché dans la bande de blocs (carte seule ou fusion de n blocs d’une même boîte). */
-export type BlocStripSegment =
-  | { kind: 'empty'; bloc: BlocDto }
-  | { kind: 'occupied'; blocs: BlocDto[]; fused: boolean };
-
-export interface TraversHeaderDto {
-  index: number;
-  numero: string;
-}
-
-export interface TabletteCellDto {
-  tabletteId: string;
-  rowIndex: number;
-  colIndex: number;
-  tabletteNumero: string;
-  blocs: BlocDto[];
-  occupiedCount: number;
-  totalCount: number;
-}
-
-export interface EpiMatrixDto {
-  epi: EpiSummary;
-  traversHeaders: TraversHeaderDto[];
-  rows: TabletteCellDto[][];
-}
-
-/** Réponse {@code GET /api/emplacements/epis/next-numero}. */
 export interface NextEpiNumeroDto {
   numero: string;
+}
+
+interface SemanticSearchHit {
+  boiteId: number;
+  titre: string;
+  score: number;
+  epiNumero: string | null;
+  emplacement: string | null;
+  blocIds: string[];
+  onRequestedEpi: boolean;
 }
 
 /** Ajout ou suppression d’une ligne / colonne de la matrice épi. */
@@ -144,6 +104,7 @@ type StructurePatchOp = 'addRow' | 'addColumn' | 'removeRow' | 'removeColumn';
     TooltipModule,
     ConfirmDialogModule,
     TranslocoPipe,
+    Epi3dViewComponent,
   ],
   templateUrl: './emplacement.component.html',
   styleUrl: './emplacement.component.scss',
@@ -177,6 +138,11 @@ export class EmplacementComponent implements OnInit, AfterViewInit, OnDestroy {
   readonly defaultBlocCm = 10;
 
   view = signal<'list' | 'matrix'>('list');
+  matrixViewMode = signal<'2d' | '3d'>('2d');
+  semanticSearchText = '';
+  readonly semanticSearching = signal(false);
+  readonly semanticHighlightBlocIds = signal<string[]>([]);
+  readonly semanticResults = signal<SemanticSearchHit[]>([]);
   loading = signal(false);
   loadingMatrix = signal(false);
   structureBusy = signal(false);
@@ -633,13 +599,16 @@ export class EmplacementComponent implements OnInit, AfterViewInit, OnDestroy {
 
   openEpi(epi: EpiSummary): void {
     this.clearSpotlight();
+    this.clearSemanticSearch();
     this.matrixData.set(null);
+    this.matrixViewMode.set('2d');
     this.view.set('matrix');
     this.loadMatrix(epi.id);
   }
 
   backToList(): void {
     this.clearSpotlight();
+    this.clearSemanticSearch();
     this.view.set('list');
     this.matrixData.set(null);
     this.refreshEpis();
@@ -873,6 +842,67 @@ export class EmplacementComponent implements OnInit, AfterViewInit, OnDestroy {
   openTablette(cell: TabletteCellDto): void {
     this.selectedCell.set(cell);
     this.showTabletteDialog.set(true);
+  }
+
+  runSemanticSearch(): void {
+    const query = this.semanticSearchText?.trim();
+    if (!query) {
+      this.messages.add({
+        severity: 'warn',
+        summary: this.i18n.t('emplacement.semanticSearchTitle'),
+        detail: this.i18n.t('emplacement.semanticSearchInputRequired'),
+        life: 7000,
+      });
+      return;
+    }
+    const epiNumero = this.matrixData()?.epi?.numero ?? null;
+    this.semanticSearching.set(true);
+    this.http
+      .post<{
+        query: string;
+        results: SemanticSearchHit[];
+        highlightBlocIds: string[];
+      }>(`${environment.apiUrl}/api/boites/recherche-semantique`, {
+        query,
+        epiNumero,
+        limit: 15,
+      })
+      .subscribe({
+        next: (res) => {
+          this.semanticSearching.set(false);
+          this.semanticResults.set(res?.results ?? []);
+          this.semanticHighlightBlocIds.set(res?.highlightBlocIds ?? []);
+          if (!res?.results?.length) {
+            this.messages.add({
+              severity: 'info',
+              summary: this.i18n.t('emplacement.semanticSearchTitle'),
+              detail: this.i18n.t('emplacement.semanticSearchNoResults'),
+              life: 8000,
+            });
+          }
+        },
+        error: (err) => {
+          this.semanticSearching.set(false);
+          this.toastError(err, 'emplacement.semanticSearchError');
+        },
+      });
+  }
+
+  clearSemanticSearch(): void {
+    this.semanticSearchText = '';
+    this.semanticResults.set([]);
+    this.semanticHighlightBlocIds.set([]);
+  }
+
+  semanticScorePercent(score: number): number {
+    return Math.round((score ?? 0) * 100);
+  }
+
+  focusSemanticHit(hit: SemanticSearchHit): void {
+    if (!hit.onRequestedEpi || !hit.blocIds?.length) {
+      return;
+    }
+    this.semanticHighlightBlocIds.set([...hit.blocIds]);
   }
 
   closeTablette(): void {

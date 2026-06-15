@@ -1,0 +1,23 @@
+<div class="epi-3d-shell">
+  <div class="epi-3d-canvas" #canvasHost></div>
+  <div class="epi-3d-overlay">
+    <p class="epi-3d-hint m-0">
+      <i class="pi pi-arrows-alt" aria-hidden="true"></i>
+      {{ 'emplacement.view3dHint' | transloco }}
+    </p>
+    <ul class="epi-3d-legend m-0">
+      <li>
+        <span class="epi-3d-legend__swatch epi-3d-legend__swatch--free"></span>
+        {{ 'emplacement.view3dLegendFree' | transloco }}
+      </li>
+      <li>
+        <span class="epi-3d-legend__swatch epi-3d-legend__swatch--occupied"></span>
+        {{ 'emplacement.view3dLegendOccupied' | transloco }}
+      </li>
+      <li>
+        <span class="epi-3d-legend__swatch epi-3d-legend__swatch--highlight"></span>
+        {{ 'emplacement.view3dLegendHighlight' | transloco }}
+      </li>
+    </ul>
+  </div>
+</div>

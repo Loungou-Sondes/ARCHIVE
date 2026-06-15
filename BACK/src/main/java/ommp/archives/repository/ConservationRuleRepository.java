@@ -13,6 +13,18 @@ import ommp.archives.entity.ConservationRuleStatus;
 
 public interface ConservationRuleRepository extends JpaRepository<ConservationRule, Long>, JpaSpecificationExecutor<ConservationRule> {
 
+	@Query(
+		value = """
+			SELECT ID FROM REGLES_CONSERVATION
+			WHERE ID_TYPE_DOCUMENT = :documentTypeId
+			  AND UPPER(TRIM(STATUT)) = 'VALIDE'
+			ORDER BY ID DESC
+			FETCH FIRST 1 ROW ONLY
+			""",
+		nativeQuery = true
+	)
+	Optional<Long> findFirstValideRuleIdForDocumentType(@Param("documentTypeId") Long documentTypeId);
+
 	Optional<ConservationRule> findFirstByDocumentType_IdAndStatusOrderByIdDesc(
 		Long documentTypeId,
 		ConservationRuleStatus status

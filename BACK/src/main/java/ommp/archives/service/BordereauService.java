@@ -72,6 +72,7 @@ public class BordereauService {
 	private final DirectionRepository directionRepository;
 	private final DocumentTypeRepository documentTypeRepository;
 	private final ConservationRuleRepository conservationRuleRepository;
+	private final ConservationRuleResolver conservationRuleResolver;
 	private final BoiteEtatService boiteEtatService;
 	private final EmplacementOccupationService emplacementOccupationService;
 	private final AuthorizationService authorization;
@@ -84,6 +85,7 @@ public class BordereauService {
 		DirectionRepository directionRepository,
 		DocumentTypeRepository documentTypeRepository,
 		ConservationRuleRepository conservationRuleRepository,
+		ConservationRuleResolver conservationRuleResolver,
 		BoiteEtatService boiteEtatService,
 		EmplacementOccupationService emplacementOccupationService,
 		AuthorizationService authorization
@@ -95,6 +97,7 @@ public class BordereauService {
 		this.directionRepository = directionRepository;
 		this.documentTypeRepository = documentTypeRepository;
 		this.conservationRuleRepository = conservationRuleRepository;
+		this.conservationRuleResolver = conservationRuleResolver;
 		this.boiteEtatService = boiteEtatService;
 		this.emplacementOccupationService = emplacementOccupationService;
 		this.authorization = authorization;
@@ -146,8 +149,8 @@ public class BordereauService {
 		if (!documentTypeRepository.existsById(documentTypeId)) {
 			throw new ApiException(HttpStatus.BAD_REQUEST, "UNKNOWN_DOCUMENT_TYPE", "Type de document inconnu.");
 		}
-		ConservationRule rule = conservationRuleRepository
-			.findFirstByDocumentType_IdAndStatusOrderByIdDesc(documentTypeId, ConservationRuleStatus.VALIDE)
+		ConservationRule rule = conservationRuleResolver
+			.findValideRuleForDocumentType(documentTypeId)
 			.orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "NO_RULE_FOR_TYPE", "Aucune règle de conservation valide pour ce type de document."));
 		return new RegleConservationValidePreviewDto(
 			rule.getReference(),
@@ -742,8 +745,8 @@ public class BordereauService {
 	}
 
 	private ConservationRule resolveValideRuleForBoite(Long documentTypeId) {
-		return conservationRuleRepository
-			.findFirstByDocumentType_IdAndStatusOrderByIdDesc(documentTypeId, ConservationRuleStatus.VALIDE)
+		return conservationRuleResolver
+			.findValideRuleForDocumentType(documentTypeId)
 			.orElseThrow(() -> new ApiException(
 				HttpStatus.BAD_REQUEST,
 				"NO_RULE_FOR_TYPE",
@@ -797,11 +800,8 @@ public class BordereauService {
 		if (linked != null && linked.getStatus() == ConservationRuleStatus.VALIDE) {
 			return linked;
 		}
-		return conservationRuleRepository
-			.findFirstByDocumentType_IdAndStatusOrderByIdDesc(
-				box.getDocumentType().getId(),
-				ConservationRuleStatus.VALIDE
-			)
+		return conservationRuleResolver
+			.findValideRuleForDocumentType(box.getDocumentType().getId())
 			.orElse(null);
 	}
 

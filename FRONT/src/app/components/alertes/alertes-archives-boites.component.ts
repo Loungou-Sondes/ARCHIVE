@@ -10,6 +10,7 @@ import { environment } from '../../../environments/environment';
 import { ButtonModule } from 'primeng/button';
 import { DialogModule } from 'primeng/dialog';
 import { InputTextModule } from 'primeng/inputtext';
+import { PaginatorModule, PaginatorState } from 'primeng/paginator';
 import { RippleModule } from 'primeng/ripple';
 import { SelectModule } from 'primeng/select';
 import { ToastModule } from 'primeng/toast';
@@ -47,14 +48,18 @@ export type BoiteAlerteCard =
   | { kind: 'semi-actif'; row: BoiteSemiActifAlerteRow }
   | { kind: 'echeance'; row: BoiteEcheanceAlerteRow };
 
-interface BoiteSemiActifPage {
-  content: BoiteSemiActifAlerteRow[];
-  totalElements: number;
+interface BoiteAlerteArchivesApiRow {
+  kind: string;
+  semiActif: BoiteSemiActifAlerteRow | null;
+  echeance: BoiteEcheanceAlerteRow | null;
 }
 
-interface BoiteEcheancePage {
-  content: BoiteEcheanceAlerteRow[];
+interface BoiteAlerteArchivesPage {
+  content: BoiteAlerteArchivesApiRow[];
   totalElements: number;
+  totalPages: number;
+  number: number;
+  size: number;
 }
 
 interface ApprovePendingRow {
@@ -82,6 +87,7 @@ interface ReporterYearOption {
     InputTextModule,
     SelectModule,
     ToastModule,
+    PaginatorModule,
     TranslocoPipe,
   ],
   templateUrl: './alertes-archives-boites.component.html',
@@ -103,6 +109,11 @@ export class AlertesArchivesBoitesComponent {
   readonly cards = signal<BoiteAlerteCard[]>([]);
   readonly loading = signal(false);
   readonly searchText = signal('');
+  readonly totalRecords = signal(0);
+  readonly currentPage = signal(0);
+  readonly pageReportTemplate = signal(this.i18n.t('alertes.pageReportAlerts'));
+
+  pageSize = 12;
 
   readonly reportingId = signal<number | null>(null);
   readonly approvingId = signal<number | null>(null);
@@ -115,52 +126,60 @@ export class AlertesArchivesBoitesComponent {
   readonly reporterYearOptions: ReporterYearOption[] = this.buildReporterYearOptions();
 
   constructor() {
-    this.searchDebounced.pipe(debounceTime(380), takeUntilDestroyed(this.destroyRef)).subscribe(() => this.reload());
+    this.searchDebounced.pipe(debounceTime(380), takeUntilDestroyed(this.destroyRef)).subscribe(() => {
+      this.currentPage.set(0);
+      this.reload(0);
+    });
   }
 
   onSearchValueChange(): void {
     this.searchDebounced.next();
   }
 
-  reload(): void {
+  onPageChange(event: PaginatorState): void {
+    const first = event.first ?? 0;
+    const rows = event.rows ?? this.pageSize;
+    this.pageSize = rows;
+    const page = Math.floor(first / rows);
+    this.reload(page);
+  }
+
+  reload(page = this.currentPage()): void {
     if (!this.adminOnly()) {
       this.cards.set([]);
+      this.totalRecords.set(0);
       this.totalChange.emit(0);
       return;
     }
     this.loading.set(true);
-    let params = new HttpParams().set('page', '0').set('size', '200');
+    let params = new HttpParams().set('page', String(page)).set('size', String(this.pageSize));
     params = addQuery(params, this.searchText());
-    this.http
-      .get<BoiteSemiActifPage>(`${this.boitesApi}/alertes-semi-actif`, { params })
-      .subscribe({
-        next: (semi) => {
-          this.http
-            .get<BoiteEcheancePage>(`${this.boitesApi}/alertes-echeance-destruction-transfert`, { params })
-            .subscribe({
-              next: (ech) => {
-                const semiRows = (semi.content ?? []).map((row) => ({ kind: 'semi-actif' as const, row }));
-                const semiIds = new Set(semiRows.map((c) => c.row.boiteId));
-                const echRows = (ech.content ?? [])
-                  .filter((row) => !semiIds.has(row.boiteId))
-                  .map((row) => ({ kind: 'echeance' as const, row }));
-                const merged: BoiteAlerteCard[] = [...semiRows, ...echRows];
-                this.cards.set(merged);
-                const total = (semi.totalElements ?? 0) + (ech.totalElements ?? 0);
-                this.totalChange.emit(total);
-                this.loading.set(false);
-              },
-              error: (err) => {
-                this.loading.set(false);
-                this.toastError(err, 'alertes.loadEcheanceError');
-              },
-            });
-        },
-        error: (err) => {
-          this.loading.set(false);
-          this.toastError(err, 'alertes.loadSemiActifError');
-        },
-      });
+    this.http.get<BoiteAlerteArchivesPage>(`${this.boitesApi}/alertes-archives`, { params }).subscribe({
+      next: (res) => {
+        const mapped = (res?.content ?? [])
+          .map((row) => this.toCard(row))
+          .filter((card): card is BoiteAlerteCard => card != null);
+        this.cards.set(mapped);
+        this.totalRecords.set(res?.totalElements ?? 0);
+        this.currentPage.set(res?.number ?? page);
+        this.totalChange.emit(res?.totalElements ?? 0);
+        this.loading.set(false);
+      },
+      error: (err) => {
+        this.loading.set(false);
+        this.toastError(err, 'alertes.loadArchivesError');
+      },
+    });
+  }
+
+  private toCard(row: BoiteAlerteArchivesApiRow): BoiteAlerteCard | null {
+    if (row.kind === 'SEMI_ACTIF' && row.semiActif) {
+      return { kind: 'semi-actif', row: row.semiActif };
+    }
+    if (row.kind === 'ECHEANCE' && row.echeance) {
+      return { kind: 'echeance', row: row.echeance };
+    }
+    return null;
   }
 
   cardTitre(card: BoiteAlerteCard): string {
@@ -289,7 +308,7 @@ export class AlertesArchivesBoitesComponent {
           detail: this.i18n.t('alertes.reappearInYear', { annee }),
           life: 8000,
         });
-        this.reload();
+        this.reload(this.currentPage());
       },
       error: (err) => {
         this.reportingId.set(null);
@@ -318,7 +337,7 @@ export class AlertesArchivesBoitesComponent {
             : this.i18n.t('alertes.boxTransferred', { titre: row.boiteTitre }),
           life: 8000,
         });
-        this.reload();
+        this.reload(this.currentPage());
       },
       error: (err) => {
         this.approvingId.set(null);

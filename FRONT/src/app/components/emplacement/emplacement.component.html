@@ -203,16 +203,36 @@
           </div>
         </div>
         @if (currentEpi(); as epi) {
-          <button
-            pButton
-            pRipple
-            type="button"
-            icon="pi pi-arrow-up-right-and-arrow-down-left-from-center"
-            [label]="'emplacement.resizeBtn' | transloco"
-            class="p-button-outlined matrix-resize-epi-btn"
-            (click)="openResizeFromMatrix()"
-            [pTooltip]="'emplacement.resizeFromMatrixTooltip' | transloco"
-            tooltipPosition="bottom"></button>
+          <div class="flex flex-wrap align-items-center gap-2">
+            <div class="matrix-view-toggle" role="group" [attr.aria-label]="'emplacement.viewModeAria' | transloco">
+              <button
+                type="button"
+                class="matrix-view-toggle__btn"
+                [class.matrix-view-toggle__btn--active]="matrixViewMode() === '2d'"
+                (click)="matrixViewMode.set('2d')">
+                <i class="pi pi-table" aria-hidden="true"></i>
+                {{ 'emplacement.view2d' | transloco }}
+              </button>
+              <button
+                type="button"
+                class="matrix-view-toggle__btn"
+                [class.matrix-view-toggle__btn--active]="matrixViewMode() === '3d'"
+                (click)="matrixViewMode.set('3d')">
+                <i class="pi pi-box" aria-hidden="true"></i>
+                {{ 'emplacement.view3d' | transloco }}
+              </button>
+            </div>
+            <button
+              pButton
+              pRipple
+              type="button"
+              icon="pi pi-arrow-up-right-and-arrow-down-left-from-center"
+              [label]="'emplacement.resizeBtn' | transloco"
+              class="p-button-outlined matrix-resize-epi-btn"
+              (click)="openResizeFromMatrix()"
+              [pTooltip]="'emplacement.resizeFromMatrixTooltip' | transloco"
+              tooltipPosition="bottom"></button>
+          </div>
         }
       </div>
     </header>
@@ -223,6 +243,77 @@
         <p class="muted mt-3 mb-0">{{ 'emplacement.loadingMatrix' | transloco }}</p>
       </div>
     } @else if (matrixData(); as data) {
+      @if (matrixViewMode() === '3d') {
+        <div class="card modern-card semantic-search-panel mb-3">
+          <div class="semantic-search-panel__head">
+            <div>
+              <h5 class="m-0 semantic-search-panel__title">
+                <i class="pi pi-sparkles" aria-hidden="true"></i>
+                {{ 'emplacement.semanticSearchTitle' | transloco }}
+              </h5>
+              <p class="m-0 mt-1 semantic-search-panel__hint">{{ 'emplacement.semanticSearchHint' | transloco }}</p>
+            </div>
+          </div>
+          <div class="flex flex-wrap gap-2 align-items-center mt-3">
+            <input
+              pInputText
+              class="flex-1 semantic-search-input"
+              [(ngModel)]="semanticSearchText"
+              [placeholder]="'emplacement.semanticSearchPlaceholder' | transloco"
+              (keyup.enter)="runSemanticSearch()" />
+            <button
+              pButton
+              pRipple
+              type="button"
+              icon="pi pi-search"
+              [label]="'emplacement.semanticSearchButton' | transloco"
+              [loading]="semanticSearching()"
+              (click)="runSemanticSearch()"></button>
+            @if (semanticResults().length > 0 || semanticHighlightBlocIds().length > 0) {
+              <button
+                pButton
+                pRipple
+                type="button"
+                icon="pi pi-times"
+                class="p-button-outlined"
+                [label]="'emplacement.semanticSearchClear' | transloco"
+                (click)="clearSemanticSearch()"></button>
+            }
+          </div>
+          @if (semanticResults().length > 0) {
+            <p class="semantic-search-count m-0 mt-3">
+              {{ 'emplacement.semanticSearchResultsCount' | transloco: { count: semanticResults().length } }}
+            </p>
+            <ul class="semantic-search-results m-0 mt-2">
+              @for (hit of semanticResults(); track hit.boiteId) {
+                <li>
+                  <button
+                    type="button"
+                    class="semantic-search-hit"
+                    [class.semantic-search-hit--on-epi]="hit.onRequestedEpi"
+                    (click)="focusSemanticHit(hit)">
+                    <span class="semantic-search-hit__score">{{ semanticScorePercent(hit.score) }}%</span>
+                    <span class="semantic-search-hit__title">{{ hit.titre }}</span>
+                    @if (hit.onRequestedEpi) {
+                      <span class="semantic-search-hit__badge semantic-search-hit__badge--here">
+                        {{ 'emplacement.semanticSearchOnThisEpi' | transloco }}
+                      </span>
+                    } @else if (hit.epiNumero) {
+                      <span class="semantic-search-hit__badge">
+                        {{ 'emplacement.semanticSearchOtherEpi' | transloco: { epi: hit.epiNumero } }}
+                      </span>
+                    }
+                  </button>
+                </li>
+              }
+            </ul>
+          }
+        </div>
+        <app-epi-3d-view
+          [matrix]="data"
+          [highlightedBlocIds]="semanticHighlightBlocIds()"
+          (blocClick)="openBoiteDetail($event)" />
+      } @else {
       <div class="card modern-card matrix-controls mb-3">
         <div class="flex flex-column lg:flex-row flex-wrap gap-4 justify-content-between">
           <div class="flex flex-wrap align-items-center gap-2 matrix-control-group">
@@ -335,6 +426,7 @@
           </tbody>
         </table>
       </div>
+      }
     }
   }
 

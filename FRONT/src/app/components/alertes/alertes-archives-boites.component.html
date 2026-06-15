@@ -73,6 +73,17 @@
         </article>
       }
     </div>
+
+    @if (totalRecords() > 0) {
+      <p-paginator
+        [first]="currentPage() * pageSize"
+        [rows]="pageSize"
+        [totalRecords]="totalRecords()"
+        [rowsPerPageOptions]="[6, 12, 24]"
+        [showCurrentPageReport]="true"
+        [currentPageReportTemplate]="pageReportTemplate()"
+        (onPageChange)="onPageChange($event)" />
+    }
   }
 }
 

@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Optional;
 
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
@@ -21,6 +22,7 @@ import jakarta.persistence.criteria.Join;
 import jakarta.persistence.criteria.JoinType;
 import jakarta.persistence.criteria.Predicate;
 import jakarta.persistence.criteria.Root;
+import ommp.archives.dto.boite.BoiteAlerteArchivesRow;
 import ommp.archives.dto.boite.BoiteEcheanceAlerteResponse;
 import ommp.archives.dto.boite.BoiteSemiActifAlerteResponse;
 import ommp.archives.entity.Boite;
@@ -80,6 +82,108 @@ public class BoiteAlerteService {
 			BoiteEtatType.SEMI_ACTIF,
 			LocalDate.now().getYear()
 		);
+	}
+
+	@Transactional(readOnly = true)
+	public Page<BoiteAlerteArchivesRow> listAlertesArchives(
+		Authentication authentication,
+		String q,
+		Pageable pageable
+	) {
+		authorization.requireAdmin(authentication);
+		String qTrim = q == null || q.isBlank() ? null : q.trim();
+		String qEcheance = qTrim == null ? null : qTrim.toLowerCase();
+		LocalDate today = LocalDate.now();
+		int currentYear = today.getYear();
+
+		Specification<Boite> semiSpec = semiActifAlerteSpec(null, qTrim, today);
+		Specification<Boite> echSpec = echeanceDestructionTransfertBaseSpec(null)
+			.and(echeanceDueYearSpec(currentYear));
+		if (qEcheance != null) {
+			echSpec = echSpec.and(echeanceSearchSpec(qEcheance));
+		}
+
+		long semiTotal = boiteRepository.count(semiSpec);
+		long echTotal = boiteRepository.count(echSpec);
+		long total = semiTotal + echTotal;
+
+		int page = Math.max(0, pageable.getPageNumber());
+		int size = pageable.getPageSize() > 0 ? pageable.getPageSize() : 12;
+		int offset = page * size;
+
+		Sort semiSort = Sort.by(Sort.Order.asc("titre"));
+		Sort echSort = Sort.by(Sort.Order.asc("anneeMax"), Sort.Order.asc("titre"));
+
+		List<BoiteAlerteArchivesRow> content = new ArrayList<>();
+
+		if (offset < semiTotal) {
+			int semiTake = (int) Math.min(size, semiTotal - offset);
+			content.addAll(fetchSemiActifSlice(semiSpec, semiSort, offset, semiTake, size, today));
+		}
+
+		int remaining = size - content.size();
+		if (remaining > 0) {
+			int echOffset = (int) Math.max(0, offset - semiTotal);
+			content.addAll(fetchEcheanceSlice(echSpec, echSort, echOffset, remaining, size, today));
+		}
+
+		return new PageImpl<>(content, PageRequest.of(page, size), total);
+	}
+
+	private List<BoiteAlerteArchivesRow> fetchSemiActifSlice(
+		Specification<Boite> spec,
+		Sort sort,
+		int offset,
+		int take,
+		int pageSize,
+		LocalDate today
+	) {
+		if (take <= 0) {
+			return List.of();
+		}
+		int pageNum = offset / pageSize;
+		int skipInPage = offset % pageSize;
+		int fetchSize = skipInPage + take;
+		Page<Boite> page = boiteRepository.findAll(spec, PageRequest.of(pageNum, fetchSize, sort));
+		List<Boite> slice = page.getContent();
+		if (skipInPage >= slice.size()) {
+			return List.of();
+		}
+		int end = Math.min(skipInPage + take, slice.size());
+		List<BoiteAlerteArchivesRow> rows = new ArrayList<>();
+		for (Boite box : slice.subList(skipInPage, end)) {
+			rows.add(BoiteAlerteArchivesRow.semiActif(toSemiActifAlerteResponse(box, today)));
+		}
+		return rows;
+	}
+
+	private List<BoiteAlerteArchivesRow> fetchEcheanceSlice(
+		Specification<Boite> spec,
+		Sort sort,
+		int offset,
+		int take,
+		int pageSize,
+		LocalDate today
+	) {
+		if (take <= 0) {
+			return List.of();
+		}
+		int pageNum = offset / pageSize;
+		int skipInPage = offset % pageSize;
+		int fetchSize = skipInPage + take;
+		Page<Boite> page = boiteRepository.findAll(spec, PageRequest.of(pageNum, fetchSize, sort));
+		List<Boite> slice = page.getContent();
+		if (skipInPage >= slice.size()) {
+			return List.of();
+		}
+		int end = Math.min(skipInPage + take, slice.size());
+		List<BoiteAlerteArchivesRow> rows = new ArrayList<>();
+		for (Boite box : slice.subList(skipInPage, end)) {
+			toEcheanceAlerteResponse(box, today)
+				.map(BoiteAlerteArchivesRow::echeance)
+				.ifPresent(rows::add);
+		}
+		return rows;
 	}
 
 	@Transactional(readOnly = true)
@@ -148,7 +252,7 @@ public class BoiteAlerteService {
 		LocalDate today = LocalDate.now();
 		int currentYear = today.getYear();
 
-		Specification<Boite> spec = echeanceDestructionTransfertBaseSpec(null, true)
+		Specification<Boite> spec = echeanceDestructionTransfertBaseSpec(null)
 			.and(echeanceDueYearSpec(currentYear));
 		if (qTrim != null) {
 			spec = spec.and(echeanceSearchSpec(qTrim));
@@ -159,7 +263,12 @@ public class BoiteAlerteService {
 			pageable.getPageSize(),
 			Sort.by(Sort.Order.asc("anneeMax"), Sort.Order.asc("titre"))
 		);
-		return boiteRepository.findAll(spec, sorted).map(box -> toEcheanceAlerteResponse(box, today).orElseThrow());
+		Page<Boite> page = boiteRepository.findAll(spec, sorted);
+		List<BoiteEcheanceAlerteResponse> content = page.getContent().stream()
+			.map(box -> toEcheanceAlerteResponse(box, today))
+			.flatMap(Optional::stream)
+			.toList();
+		return new PageImpl<>(content, sorted, page.getTotalElements());
 	}
 
 	@Transactional
@@ -293,7 +402,7 @@ public class BoiteAlerteService {
 			Join<Boite, ConservationRule> rule = root.join("conservationRule", JoinType.INNER);
 			return cb.lessThanOrEqualTo(
 				cb.sum(root.get("anneeMax"), rule.get("semiActiveYears")),
-				(long) currentYear
+				cb.literal((long) currentYear)
 			);
 		};
 	}
@@ -313,14 +422,8 @@ public class BoiteAlerteService {
 		};
 	}
 
-	private Specification<Boite> echeanceDestructionTransfertBaseSpec(String userDirectionId, boolean fetchAssociations) {
+	private Specification<Boite> echeanceDestructionTransfertBaseSpec(String userDirectionId) {
 		return (root, query, cb) -> {
-			if (fetchAssociations && Boite.class.equals(query.getResultType())) {
-				root.fetch("bordereau", JoinType.INNER);
-				root.fetch("conservationRule", JoinType.INNER);
-				root.fetch("documentType", JoinType.INNER);
-				root.fetch("etatCourant", JoinType.INNER);
-			}
 			List<Predicate> preds = new ArrayList<>();
 			Join<Boite, Bordereau> br = root.join("bordereau", JoinType.INNER);
 			Join<Boite, ConservationRule> rule = root.join("conservationRule", JoinType.INNER);
@@ -331,6 +434,7 @@ public class BoiteAlerteService {
 			preds.add(rule.get("finalDecision").in(FinalDecision.DETRUIRE, FinalDecision.TRANSFERER));
 			preds.add(cb.isFalse(rule.get("semiActiveUnknown")));
 			preds.add(cb.isNotNull(rule.get("semiActiveYears")));
+			preds.add(cb.greaterThanOrEqualTo(rule.get("semiActiveYears"), 0));
 			ajouterFiltreEtatCourantSemiActif(root, cb, preds);
 
 			if (userDirectionId != null && !userDirectionId.isBlank()) {
@@ -391,11 +495,6 @@ public class BoiteAlerteService {
 
 	private Specification<Boite> semiActifAlerteSpec(String userDirectionId, String q, LocalDate today) {
 		return (root, query, cb) -> {
-			if (Boite.class.equals(query.getResultType())) {
-				root.fetch("bordereau", JoinType.INNER);
-				root.fetch("documentType", JoinType.INNER);
-				root.fetch("conservationRule", JoinType.INNER);
-			}
 			List<Predicate> preds = new ArrayList<>();
 			Join<Boite, Bordereau> br = root.join("bordereau", JoinType.INNER);
 			Join<Boite, ConservationRule> rule = root.join("conservationRule", JoinType.INNER);

@@ -31,3 +31,6 @@ yarn-error.log
 
 # Logs
 *.log
+
+# Ancien service Python IA (obsolète — dossier vide, supprimer si présent)
+BACK/ml/

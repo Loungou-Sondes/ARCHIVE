@@ -3,3 +3,154 @@
 :host {
   display: block;
 }
+
+.matrix-view-toggle {
+  display: inline-flex;
+  padding: 0.2rem;
+  border-radius: 12px;
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  gap: 0.2rem;
+}
+
+.matrix-view-toggle__btn {
+  border: none;
+  background: transparent;
+  color: #64748b;
+  font-weight: 700;
+  font-size: 0.92rem;
+  padding: 0.45rem 0.85rem;
+  border-radius: 10px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.matrix-view-toggle__btn--active {
+  background: #ffffff;
+  color: #0f172a;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.08);
+}
+
+.semantic-search-panel {
+  padding: 1.1rem 1.25rem;
+  border: 1px solid #dbeafe;
+  background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+}
+
+.semantic-search-panel__title {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.semantic-search-panel__hint {
+  font-size: 0.92rem;
+  color: #64748b;
+}
+
+.semantic-search-input {
+  min-width: min(100%, 18rem);
+}
+
+:host ::ng-deep .semantic-search-input.p-inputtext,
+:host ::ng-deep input.semantic-search-input.p-inputtext {
+  background: #ffffff !important;
+  color: #0f172a !important;
+  -webkit-text-fill-color: #0f172a !important;
+  border: 1px solid #cbd5e1 !important;
+  border-radius: 12px !important;
+  min-height: 2.85rem !important;
+  caret-color: #0f172a !important;
+  box-shadow: none !important;
+
+  &::placeholder {
+    color: #64748b !important;
+    opacity: 1;
+  }
+
+  &:enabled:hover {
+    background: #ffffff !important;
+    border-color: #93c5fd !important;
+  }
+
+  &:enabled:focus {
+    background: #ffffff !important;
+    color: #0f172a !important;
+    border-color: #3b82f6 !important;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.18) !important;
+  }
+}
+
+:host ::ng-deep input.semantic-search-input.p-inputtext:-webkit-autofill,
+:host ::ng-deep input.semantic-search-input.p-inputtext:-webkit-autofill:hover,
+:host ::ng-deep input.semantic-search-input.p-inputtext:-webkit-autofill:focus {
+  -webkit-text-fill-color: #0f172a !important;
+  -webkit-box-shadow: 0 0 0 1000px #ffffff inset !important;
+  box-shadow: 0 0 0 1000px #ffffff inset !important;
+}
+
+.semantic-search-count {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #334155;
+}
+
+.semantic-search-results {
+  list-style: none;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  max-height: 11rem;
+  overflow: auto;
+}
+
+.semantic-search-hit {
+  width: 100%;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  background: #ffffff;
+  padding: 0.55rem 0.75rem;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.45rem 0.65rem;
+  cursor: pointer;
+  text-align: left;
+}
+
+.semantic-search-hit--on-epi {
+  border-color: #93c5fd;
+  background: #eff6ff;
+}
+
+.semantic-search-hit__score {
+  font-weight: 800;
+  color: #1d4ed8;
+  min-width: 2.5rem;
+}
+
+.semantic-search-hit__title {
+  flex: 1;
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.semantic-search-hit__badge {
+  font-size: 0.78rem;
+  font-weight: 700;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  background: #f1f5f9;
+  color: #475569;
+}
+
+.semantic-search-hit__badge--here {
+  background: #dbeafe;
+  color: #1d4ed8;
+}

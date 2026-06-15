@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.RestController;
 import jakarta.validation.Valid;
 
 import ommp.archives.dto.boite.ArchivesIntermediairesGroupedPageResponse;
+import ommp.archives.dto.boite.BoiteAlerteArchivesRow;
 import ommp.archives.dto.boite.BoiteConsultationDto;
 import ommp.archives.dto.boite.CreateDossierRequest;
 import ommp.archives.dto.boite.DossierResponse;
@@ -24,11 +25,14 @@ import ommp.archives.dto.boite.BoiteEcheanceAlerteResponse;
 import ommp.archives.dto.boite.BoiteSemiActifAlerteResponse;
 import ommp.archives.dto.boite.ReporterSemiActifAlerteRequest;
 import ommp.archives.dto.boite.BoiteRechercheItemDto;
+import ommp.archives.dto.boite.SemanticSearchRequest;
+import ommp.archives.dto.boite.SemanticSearchResponse;
 import ommp.archives.dto.boite.HistoriqueGroupedPageResponse;
 import ommp.archives.service.BoiteAlerteService;
 import ommp.archives.service.BoiteArchivesIntermediairesService;
 import ommp.archives.service.BoiteHistoriqueService;
 import ommp.archives.service.BoiteRechercheService;
+import ommp.archives.service.BoiteSemanticSearchService;
 import ommp.archives.service.DossierService;
 
 import java.util.List;
@@ -41,6 +45,7 @@ public class BoiteController {
 	private final BoiteHistoriqueService boiteHistoriqueService;
 	private final BoiteArchivesIntermediairesService boiteArchivesIntermediairesService;
 	private final BoiteRechercheService boiteRechercheService;
+	private final BoiteSemanticSearchService boiteSemanticSearchService;
 	private final DossierService dossierService;
 
 	public BoiteController(
@@ -48,13 +53,23 @@ public class BoiteController {
 		BoiteHistoriqueService boiteHistoriqueService,
 		BoiteArchivesIntermediairesService boiteArchivesIntermediairesService,
 		BoiteRechercheService boiteRechercheService,
+		BoiteSemanticSearchService boiteSemanticSearchService,
 		DossierService dossierService
 	) {
 		this.boiteAlerteService = boiteAlerteService;
 		this.boiteHistoriqueService = boiteHistoriqueService;
 		this.boiteArchivesIntermediairesService = boiteArchivesIntermediairesService;
 		this.boiteRechercheService = boiteRechercheService;
+		this.boiteSemanticSearchService = boiteSemanticSearchService;
 		this.dossierService = dossierService;
+	}
+
+	@PostMapping("/recherche-semantique")
+	public ResponseEntity<SemanticSearchResponse> rechercheSemantique(
+		Authentication authentication,
+		@Valid @RequestBody SemanticSearchRequest request
+	) {
+		return ResponseEntity.ok(boiteSemanticSearchService.search(authentication, request));
 	}
 
 	@GetMapping("/recherche")
@@ -70,6 +85,15 @@ public class BoiteController {
 		return ResponseEntity.ok(
 			boiteRechercheService.search(authentication, q, nom, motsCles, anneeMin, anneeMax, pageable)
 		);
+	}
+
+	@GetMapping("/alertes-archives")
+	public ResponseEntity<Page<BoiteAlerteArchivesRow>> listAlertesArchives(
+		Authentication authentication,
+		@RequestParam(required = false) String q,
+		@PageableDefault(size = 12, sort = "titre") Pageable pageable
+	) {
+		return ResponseEntity.ok(boiteAlerteService.listAlertesArchives(authentication, q, pageable));
 	}
 
 	@GetMapping("/alertes-semi-actif")

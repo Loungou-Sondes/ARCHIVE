@@ -60,6 +60,7 @@ public class SecurityConfiguration {
 				.requestMatchers("/api/document-types/**").hasRole("ADMIN")
 				.requestMatchers("/api/alertes/**").hasRole("ADMIN")
 				.requestMatchers(
+					"/api/boites/alertes-archives",
 					"/api/boites/alertes-semi-actif",
 					"/api/boites/alertes-echeance-destruction-transfert"
 				).hasRole("ADMIN")
