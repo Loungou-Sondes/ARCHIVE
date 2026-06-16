@@ -188,9 +188,11 @@ export class GestionAgentComponent implements OnInit {
       next: (res) => {
         this.agents.set(res?.content ?? []);
         this.totalRecords.set(res?.totalElements ?? 0);
-        this.totalAgents.set(res?.totalElements ?? 0);
-        this.activeCount.set(res?.activeCount ?? 0);
-        this.inactiveCount.set(res?.inactiveCount ?? 0);
+        const active = res?.activeCount ?? 0;
+        const inactive = res?.inactiveCount ?? 0;
+        this.totalAgents.set(active + inactive);
+        this.activeCount.set(active);
+        this.inactiveCount.set(inactive);
         this.passwordResetCount.set(res?.passwordResetPendingCount ?? 0);
         this.loadingTable.set(false);
       },

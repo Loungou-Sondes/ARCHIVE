@@ -78,7 +78,7 @@
           class="submenu-list"
           *ngIf="item.expanded && visibleSubItems(item).length"
           [class.floating-submenu]="isCompactSidebar()"
-          [style.top.px]="isCompactSidebar() ? item.flyoutTop : null">
+          [style.top.px]="isCompactSidebar() && item.flyoutTop != null ? item.flyoutTop : null">
           <li *ngFor="let sub of visibleSubItems(item)">
             <a
               [routerLink]="sub.routerLink"

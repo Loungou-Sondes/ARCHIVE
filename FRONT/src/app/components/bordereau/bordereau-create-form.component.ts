@@ -4,7 +4,7 @@ import { Component, DestroyRef, OnInit, computed, inject, input, output, signal 
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute } from '@angular/router';
 import { FormsModule } from '@angular/forms';
-import { catchError, finalize, of } from 'rxjs';
+import { catchError, EMPTY, finalize, of, switchMap } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { ButtonModule } from 'primeng/button';
 import { DialogModule } from 'primeng/dialog';
@@ -15,6 +15,7 @@ import { RippleModule } from 'primeng/ripple';
 import { SelectModule } from 'primeng/select';
 import { TextareaModule } from 'primeng/textarea';
 import { MessageService } from 'primeng/api';
+import { ToastModule } from 'primeng/toast';
 import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
 import { AuthService } from '../../core/auth/auth.service';
 import { addQuery } from '../../core/http/http-query';
@@ -70,9 +71,14 @@ export interface BoiteBlocsSuggestion {
   premierePlageBlocs?: number | null;
 }
 
+interface BordereauDetailBoite {
+  id: number;
+}
+
 interface BordereauDetailResponse {
   id: number;
   numeroBordereau: string;
+  boites?: BordereauDetailBoite[];
 }
 
 interface BordereauResumeBoite {
@@ -133,6 +139,7 @@ export interface BordereauBoiteDraft {
     SelectModule,
     DatePickerModule,
     TextareaModule,
+    ToastModule,
     BordereauPendingBadgeComponent,
     TranslocoPipe,
   ],
@@ -752,11 +759,7 @@ export class BordereauCreateFormComponent implements OnInit {
         const arr = Array.isArray(list) ? list : [];
         this.affectSuggestions.set(arr);
         this.affectSuggestionsLoading.set(false);
-        if (this.shouldOpenFragmentationDialog(arr)) {
-          this.crossTabletteDialogVisible.set(true);
-        } else {
-          this.affectDialogVisible.set(true);
-        }
+        this.finaliserAssignationApresSuggestions(arr);
       },
       error: () => {
         this.affectSuggestions.set([]);
@@ -835,6 +838,33 @@ export class BordereauCreateFormComponent implements OnInit {
         .map((b) => b.numero)
         .join(', '),
     };
+  }
+
+  /**
+   * Après chargement des suggestions : en reprise, valide directement si possible ;
+   * sinon ouvre le dialogue (fragmentation ou sélection manuelle).
+   */
+  private finaliserAssignationApresSuggestions(suggestions: BoiteBlocsSuggestion[]): void {
+    if (this.isResume()) {
+      if (!this.anyAffectSuggestionIncomplete()) {
+        this.validerAffectation();
+        return;
+      }
+      this.affectDialogVisible.set(true);
+      this.activerModeManuel();
+      this.messages.add({
+        severity: 'warn',
+        summary: this.i18n.t('bordereau.locationsIncompleteSummary'),
+        detail: this.i18n.t('bordereau.locationsIncompleteDetail'),
+        life: 10000,
+      });
+      return;
+    }
+    if (this.shouldOpenFragmentationDialog(suggestions)) {
+      this.crossTabletteDialogVisible.set(true);
+    } else {
+      this.affectDialogVisible.set(true);
+    }
   }
 
   /**
@@ -1489,13 +1519,59 @@ export class BordereauCreateFormComponent implements OnInit {
 
   /**
    * Valide définitivement l'affectation depuis le dialogue principal (en reprise).
-   * Envoie pour chaque boîte les blocs choisis (manuel) ou la proposition courante (auto).
+   * Enregistre d'abord les modifications du formulaire, puis applique l'affectation.
    */
   validerAffectation(): void {
     const id = this.effectiveResumeId();
     if (id == null || id < 1) {
       return;
     }
+    const items = this.buildValiderAffectationItems();
+    if (!items) {
+      return;
+    }
+
+    const payload = this.buildPayload(true, this.affectSuggestions());
+    this.validatingAffectation.set(true);
+    this.http
+      .put<BordereauDetailResponse>(`${this.api}/${id}`, payload)
+      .pipe(
+        switchMap((saved) => {
+          this.syncBoiteIdsFromSaveResponse(saved);
+          const refreshedItems = this.buildValiderAffectationItems();
+          if (!refreshedItems) {
+            this.validatingAffectation.set(false);
+            return EMPTY;
+          }
+          return this.http.post<BordereauDetailResponse>(`${this.api}/${id}/valider-affectation`, {
+            boites: refreshedItems,
+          });
+        }),
+      )
+      .subscribe({
+        next: (res) => {
+          this.validatingAffectation.set(false);
+          this.validatingMode.set(false);
+          this.affectDialogVisible.set(false);
+          this.crossTabletteDialogVisible.set(false);
+          this.messages.add({
+            severity: 'success',
+            summary: this.i18n.t('bordereau.assignmentValidatedSummary'),
+            detail: this.i18n.t('bordereau.assignmentValidatedDetail', { numero: res.numeroBordereau }),
+            life: 6000,
+          });
+          this.saved.emit();
+        },
+        error: (err) => {
+          this.validatingAffectation.set(false);
+          this.toastError(err, 'bordereau.validateAssignmentError');
+        },
+      });
+  }
+
+  private buildValiderAffectationItems():
+    | { boiteId: number; emplacementBlocIds: string[]; renseignerAnneesActives?: number }[]
+    | null {
     const err = this.validateAll();
     if (err) {
       this.messages.add({
@@ -1504,7 +1580,7 @@ export class BordereauCreateFormComponent implements OnInit {
         detail: err,
         life: 8000,
       });
-      return;
+      return null;
     }
     if (this.hasRegleActiveUnknownPending()) {
       this.messages.add({
@@ -1513,10 +1589,10 @@ export class BordereauCreateFormComponent implements OnInit {
         detail: this.i18n.t('bordereau.activeYearsRequiredForLink'),
         life: 12000,
       });
-      return;
+      return null;
     }
     if (!this.canAssignEmplacements()) {
-      return;
+      return null;
     }
     if (this.manualMode() && !this.manualAllBoxesValid()) {
       this.messages.add({
@@ -1525,7 +1601,7 @@ export class BordereauCreateFormComponent implements OnInit {
         detail: this.i18n.t('bordereau.manualIncompleteValidateDetail'),
         life: 8000,
       });
-      return;
+      return null;
     }
     const useManual = this.manualMode();
     if (!useManual && this.anyAffectSuggestionIncomplete()) {
@@ -1535,7 +1611,7 @@ export class BordereauCreateFormComponent implements OnInit {
         detail: this.i18n.t('bordereau.locationsIncompleteDetail'),
         life: 9000,
       });
-      return;
+      return null;
     }
     const drafts = this.boxes();
     if (drafts.some((b) => b.boiteId == null)) {
@@ -1545,22 +1621,21 @@ export class BordereauCreateFormComponent implements OnInit {
         detail: this.i18n.t('bordereau.boxesNotFoundDetail'),
         life: 8000,
       });
-      return;
+      return null;
     }
-    const items: { boiteId: number; emplacementBlocIds: string[]; renseignerAnneesActives?: number }[] =
-      drafts.map((b, i) => {
-        const blocIds = useManual
-          ? this.manualSelectedBlocIds(i)
-          : (this.affectSuggestions()[i]?.blocs ?? []).map((bl) => bl.id);
-        const item: { boiteId: number; emplacementBlocIds: string[]; renseignerAnneesActives?: number } = {
-          boiteId: b.boiteId as number,
-          emplacementBlocIds: blocIds,
-        };
-        if (b.reglePreview?.activeUnknown && b.anneesActivesConfirmees && b.renseignerAnneesActives != null) {
-          item.renseignerAnneesActives = b.renseignerAnneesActives;
-        }
-        return item;
-      });
+    const items = drafts.map((b, i) => {
+      const blocIds = useManual
+        ? this.manualSelectedBlocIds(i)
+        : (this.affectSuggestions()[i]?.blocs ?? []).map((bl) => bl.id);
+      const item: { boiteId: number; emplacementBlocIds: string[]; renseignerAnneesActives?: number } = {
+        boiteId: b.boiteId as number,
+        emplacementBlocIds: blocIds,
+      };
+      if (b.reglePreview?.activeUnknown && b.anneesActivesConfirmees && b.renseignerAnneesActives != null) {
+        item.renseignerAnneesActives = b.renseignerAnneesActives;
+      }
+      return item;
+    });
     for (let i = 0; i < drafts.length; i++) {
       const required = this.blocsRequisForMetrage(drafts[i].metrageCm);
       if (items[i].emplacementBlocIds.length < required) {
@@ -1573,31 +1648,23 @@ export class BordereauCreateFormComponent implements OnInit {
           }),
           life: 8000,
         });
-        return;
+        return null;
       }
     }
+    return items;
+  }
 
-    this.validatingAffectation.set(true);
-    this.http
-      .post<BordereauDetailResponse>(`${this.api}/${id}/valider-affectation`, { boites: items })
-      .subscribe({
-      next: (res) => {
-        this.validatingAffectation.set(false);
-        this.validatingMode.set(false);
-        this.affectDialogVisible.set(false);
-        this.messages.add({
-          severity: 'success',
-          summary: this.i18n.t('bordereau.assignmentValidatedSummary'),
-          detail: this.i18n.t('bordereau.assignmentValidatedDetail', { numero: res.numeroBordereau }),
-          life: 6000,
-        });
-        this.saved.emit();
-      },
-      error: (err) => {
-        this.validatingAffectation.set(false);
-        this.toastError(err, 'bordereau.validateAssignmentError');
-      },
-    });
+  private syncBoiteIdsFromSaveResponse(res: BordereauDetailResponse): void {
+    const serverBoites = res.boites ?? [];
+    if (serverBoites.length === 0) {
+      return;
+    }
+    this.boxes.update((list) =>
+      list.map((b, i) => ({
+        ...b,
+        boiteId: serverBoites[i]?.id ?? b.boiteId,
+      })),
+    );
   }
 
   private toastError(err: unknown, fallbackKey: string): void {

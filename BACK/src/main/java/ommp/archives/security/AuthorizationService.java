@@ -71,7 +71,10 @@ public class AuthorizationService {
 	}
 
 	public String resolveUserAccountId(String username) {
-		return userAccountRepository.findByUserName(username)
+		if (username == null || username.isBlank()) {
+			return null;
+		}
+		return userAccountRepository.findByUserNameIgnoreCase(username.trim())
 			.map(UserAccount::getId)
 			.filter(id -> id != null && !id.isBlank())
 			.orElse(null);

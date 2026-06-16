@@ -1,6 +1,5 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
-import { ToastModule } from 'primeng/toast';
 import { MessageService } from 'primeng/api';
 import { BordereauCreateFormComponent } from './bordereau-create-form.component';
 import { AuthService } from '../../core/auth/auth.service';
@@ -11,7 +10,7 @@ import { AuthService } from '../../core/auth/auth.service';
 @Component({
   selector: 'app-bordereau-nouveau',
   standalone: true,
-  imports: [ToastModule, BordereauCreateFormComponent],
+  imports: [BordereauCreateFormComponent],
   templateUrl: './bordereau-nouveau.component.html',
   styleUrl: './bordereau-nouveau.component.scss',
   providers: [MessageService],
@@ -54,7 +53,7 @@ export class BordereauNouveauComponent implements OnInit {
   }
 
   private listPath(): string[] {
-    if (this.fromValidation()) {
+    if (this.fromValidation() || this.router.url.includes('/alertes-echeances/')) {
       return ['/home', 'alertes-echeances'];
     }
     return ['/home', 'bordereau-transfert'];

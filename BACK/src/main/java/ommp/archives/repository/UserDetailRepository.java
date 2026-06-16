@@ -29,29 +29,23 @@ public interface UserDetailRepository extends JpaRepository<UserDetail, String> 
 	);
 
 	@Query("""
-		select count(u)
+		select lower(trim(u.registrationNumber))
 		from UserDetail u
 		where u.registrationNumber is not null
-		and trim(u.registrationNumber) <> ''
+		  and length(trim(u.registrationNumber)) > 0
+		  and (
+		    lower(u.firstName) like :like
+		    or lower(u.lastName) like :like
+		    or lower(coalesce(u.directionId, '')) like :like
+		  )
 		""")
-	long countRegisteredAgents();
+	List<String> findRegistrationNumbersBySearchLike(@Param("like") String like);
 
 	@Query("""
 		select count(u)
 		from UserDetail u
-		where u.statusId = 0
+		where u.registrationNumber is not null
+		  and length(trim(u.registrationNumber)) > 0
 		""")
-	long countInactiveAgents();
-
-	@Query(
-		value = """
-			SELECT COUNT(*)
-			FROM USERS a
-			LEFT JOIN USER_DETAILS u
-			  ON LOWER(TRIM(u.REGISTRATION_NUMBER)) = LOWER(TRIM(a.USER_REGISTRATION_NUMBER))
-			WHERE u.STATUS_ID IS NULL OR u.STATUS_ID <> 0
-			""",
-		nativeQuery = true
-	)
-	long countActiveAgents();
+	long countRegisteredAgents();
 }

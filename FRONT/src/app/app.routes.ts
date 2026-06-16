@@ -127,7 +127,7 @@ export const routes: Routes = [
             path: 'reprendre/:id',
             loadComponent: () =>
               import('./components/bordereau/bordereau-nouveau.component').then((m) => m.BordereauNouveauComponent),
-            data: { titleKey: 'routes.resumeSlip', mettreEnAttente: false, resume: true, fromValidation: false },
+            data: { titleKey: 'routes.resumeSlip', mettreEnAttente: false, resume: true, fromValidation: true },
           },
           {
             path: ':id',

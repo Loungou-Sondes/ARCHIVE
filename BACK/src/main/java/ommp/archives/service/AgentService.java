@@ -18,15 +18,12 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import jakarta.persistence.criteria.Predicate;
-import jakarta.persistence.criteria.Root;
-import jakarta.persistence.criteria.Subquery;
 import ommp.archives.dto.AgentListPageResponse;
 import ommp.archives.dto.AgentResponse;
 import ommp.archives.entity.UserDetail;
 import ommp.archives.dto.UserManagementResponse;
 import ommp.archives.entity.AgentStatusCodes;
 import ommp.archives.entity.UserAccount;
-import ommp.archives.entity.UserDetail;
 import ommp.archives.exception.ApiException;
 import ommp.archives.repository.UserAccountRepository;
 import ommp.archives.repository.UserDetailRepository;
@@ -75,12 +72,26 @@ public class AgentService {
 		Pageable pageable
 	) {
 		authorization.requireAdmin(authentication);
-		String currentUserId = authorization.resolveUserAccountId(authentication.getName());
 		String qTrim = trimToNull(q);
 		boolean passwordResetFilter = Boolean.TRUE.equals(passwordResetOnly);
-		// Demandes MDP : ne pas exclure le compte connecté (sinon compteur global ≠ liste).
-		String excludeUserId = passwordResetFilter ? null : currentUserId;
-		Specification<UserAccount> spec = agentListSpec(excludeUserId, qTrim, passwordResetOnly);
+		List<String> detailMatchingRegs = List.of();
+		List<String> detailMatchingUserIds = List.of();
+		List<String> harborMatchingUserIds = List.of();
+		if (qTrim != null) {
+			detailMatchingRegs = userDetailRepository.findRegistrationNumbersBySearchLike(
+				"%" + qTrim.toLowerCase() + "%"
+			);
+			if (!detailMatchingRegs.isEmpty()) {
+				detailMatchingUserIds = userAccountRepository.findIdsByRegistrationNormalizedIn(detailMatchingRegs);
+			}
+			harborMatchingUserIds = authService.findUserIdsByHarborLike(qTrim);
+		}
+		Specification<UserAccount> spec = agentListSpec(
+			qTrim,
+			passwordResetOnly,
+			detailMatchingUserIds,
+			harborMatchingUserIds
+		);
 		Page<UserAccount> page = userAccountRepository.findAll(
 			spec,
 			PageRequest.of(
@@ -93,53 +104,52 @@ public class AgentService {
 		List<AgentResponse> content = page.getContent().stream()
 			.map(account -> merge(account, resolveDetailFromMap(account, detailsByReg)))
 			.toList();
+		long activeCount = userAccountRepository.countActiveManagedAgents();
+		long inactiveCount = userAccountRepository.countInactiveManagedAgents();
 		return new AgentListPageResponse(
 			content,
 			page.getTotalElements(),
 			page.getTotalPages(),
 			page.getNumber(),
 			page.getSize(),
-			userDetailRepository.countActiveAgents(),
-			userDetailRepository.countInactiveAgents(),
+			activeCount,
+			inactiveCount,
 			passwordResetFilter
 				? page.getTotalElements()
 				: userAccountRepository.countByPasswordResetRequestedTrue()
 		);
 	}
 
-	private Specification<UserAccount> agentListSpec(String excludeUserId, String qTrim, Boolean passwordResetOnly) {
+	private Specification<UserAccount> agentListSpec(
+		String qTrim,
+		Boolean passwordResetOnly,
+		List<String> detailMatchingUserIds,
+		List<String> harborMatchingUserIds
+	) {
 		return (root, query, cb) -> {
 			List<Predicate> preds = new ArrayList<>();
-			if (excludeUserId != null && !excludeUserId.isBlank()) {
-				preds.add(cb.notEqual(root.get("id"), excludeUserId));
-			}
+			preds.add(cb.or(
+				cb.isNull(root.get("role")),
+				cb.notLike(cb.upper(root.get("role")), "%ADMIN%")
+			));
 			if (Boolean.TRUE.equals(passwordResetOnly)) {
 				preds.add(cb.isTrue(root.get("passwordResetRequested")));
 			}
 			if (qTrim != null && !qTrim.isEmpty()) {
 				String like = "%" + qTrim.toLowerCase() + "%";
-				Subquery<Integer> detailSq = query.subquery(Integer.class);
-				Root<UserDetail> detailRoot = detailSq.from(UserDetail.class);
-				detailSq.select(cb.literal(1));
-				detailSq.where(
-					cb.equal(
-						cb.lower(cb.function("trim", String.class, detailRoot.get("registrationNumber"))),
-						cb.lower(cb.function("trim", String.class, root.get("userRegistrationNumber")))
-					),
-					cb.or(
-						cb.like(cb.lower(detailRoot.get("firstName")), like),
-						cb.like(cb.lower(detailRoot.get("lastName")), like),
-						cb.like(cb.lower(detailRoot.get("directionId")), like)
-					)
-				);
-				preds.add(cb.or(
-					cb.like(cb.lower(root.get("userName")), like),
-					cb.like(cb.lower(root.get("email")), like),
-					cb.like(cb.lower(root.get("userRegistrationNumber")), like),
-					cb.like(cb.lower(root.get("phoneNumber")), like),
-					cb.like(cb.lower(root.get("role")), like),
-					cb.exists(detailSq)
-				));
+				List<Predicate> searchPreds = new ArrayList<>();
+				searchPreds.add(cb.like(cb.lower(root.get("userName")), like));
+				searchPreds.add(cb.like(cb.lower(root.get("email")), like));
+				searchPreds.add(cb.like(cb.lower(root.get("userRegistrationNumber")), like));
+				searchPreds.add(cb.like(cb.lower(root.get("phoneNumber")), like));
+				searchPreds.add(cb.like(cb.lower(root.get("role")), like));
+				if (!detailMatchingUserIds.isEmpty()) {
+					searchPreds.add(root.get("id").in(detailMatchingUserIds));
+				}
+				if (!harborMatchingUserIds.isEmpty()) {
+					searchPreds.add(root.get("id").in(harborMatchingUserIds));
+				}
+				preds.add(cb.or(searchPreds.toArray(Predicate[]::new)));
 			}
 			return cb.and(preds.toArray(Predicate[]::new));
 		};

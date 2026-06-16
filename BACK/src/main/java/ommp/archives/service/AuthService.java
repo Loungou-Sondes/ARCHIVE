@@ -121,6 +121,23 @@ public class AuthService {
         }
     }
 
+    /** Identifiants utilisateurs dont le port ({@code HARBOR}) correspond à la recherche texte. */
+    @Transactional(readOnly = true)
+    public List<String> findUserIdsByHarborLike(String q) {
+        if (!userTableHasHarborColumn || q == null || q.isBlank()) {
+            return List.of();
+        }
+        String like = "%" + q.trim().toLowerCase() + "%";
+        try {
+            return jdbcTemplate.queryForList(
+                "SELECT ID FROM USERS WHERE HARBOR IS NOT NULL AND LOWER(HARBOR) LIKE ?",
+                String.class,
+                like);
+        } catch (RuntimeException ignored) {
+            return List.of();
+        }
+    }
+
     @Transactional
     public LoginResult login(LoginRequest request) {
         String username = request.username();

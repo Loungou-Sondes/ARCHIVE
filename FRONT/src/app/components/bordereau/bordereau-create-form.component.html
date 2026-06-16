@@ -1,4 +1,5 @@
 <div class="bordereau-create-host">
+  <p-toast position="top-center" />
   <div class="bordereau-create-inner">
     <section class="card modern-card intro-card bn-intro-card mb-3">
       <div class="flex align-items-start gap-3 flex-wrap">
@@ -110,7 +111,7 @@
               filterBy="label"
               appendTo="body"
               scrollHeight="280px"
-              panelStyleClass="doc-types-select-panel doc-types-dialog-select-panel"
+              panelStyleClass="doc-types-select-panel doc-types-dialog-select-panel regles-select-panel"
               styleClass="w-full bn-select"></p-select>
           }
         </div>
@@ -229,7 +230,7 @@
                     filterBy="title"
                     appendTo="body"
                     scrollHeight="320px"
-                    panelStyleClass="doc-types-select-panel doc-types-dialog-select-panel"
+                    panelStyleClass="doc-types-select-panel doc-types-dialog-select-panel regles-select-panel"
                     styleClass="w-full bn-select"></p-select>
                 </div>
                 @if (b.documentType) {
@@ -330,12 +331,9 @@
                     [(ngModel)]="b.metrageCm"
                     optionLabel="label"
                     optionValue="value"
-                    [filter]="true"
-                    [filterPlaceholder]="'bordereau.searchPlaceholderShort' | transloco"
-                    filterBy="label"
                     appendTo="body"
                     scrollHeight="240px"
-                    panelStyleClass="doc-types-select-panel doc-types-dialog-select-panel"
+                    panelStyleClass="bn-metrage-select-panel doc-types-dialog-select-panel"
                     styleClass="w-full bn-select"></p-select>
                 </div>
                 <div class="col-12 md:col-8 field">
@@ -393,9 +391,10 @@
           pRipple
           type="button"
           [label]="assignerButtonLabel()"
-          icon="pi pi-map-marker"
-          class="bn-assigner"
-          [disabled]="submitting() || validatingAffectation() || resumeLoading() || hasRegleActiveUnknownPending()"
+          [icon]="isResume() ? 'pi pi-check' : 'pi pi-map-marker'"
+          [class]="isResume() ? 'bn-validate-affect' : 'bn-assigner'"
+          [disabled]="submitting() || validatingAffectation() || resumeLoading() || hasRegleActiveUnknownPending() || affectSuggestionsLoading()"
+          [loading]="validatingAffectation() || affectSuggestionsLoading()"
           (click)="preparerAssignation()"></button>
       }
     </div>
