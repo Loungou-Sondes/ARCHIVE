@@ -17,7 +17,6 @@ import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import jakarta.persistence.criteria.CriteriaBuilder;
 import jakarta.persistence.criteria.Join;
 import jakarta.persistence.criteria.JoinType;
 import jakarta.persistence.criteria.Predicate;
@@ -48,6 +47,7 @@ public class BoiteAlerteService {
 	private final BoiteRepository boiteRepository;
 	private final BoiteEtatRepository boiteEtatRepository;
 	private final ConservationRuleRepository conservationRuleRepository;
+	private final ConservationRuleResolver conservationRuleResolver;
 	private final BoiteEtatService boiteEtatService;
 	private final AuthorizationService authorization;
 
@@ -55,12 +55,14 @@ public class BoiteAlerteService {
 		BoiteRepository boiteRepository,
 		BoiteEtatRepository boiteEtatRepository,
 		ConservationRuleRepository conservationRuleRepository,
+		ConservationRuleResolver conservationRuleResolver,
 		BoiteEtatService boiteEtatService,
 		AuthorizationService authorization
 	) {
 		this.boiteRepository = boiteRepository;
 		this.boiteEtatRepository = boiteEtatRepository;
 		this.conservationRuleRepository = conservationRuleRepository;
+		this.conservationRuleResolver = conservationRuleResolver;
 		this.boiteEtatService = boiteEtatService;
 		this.authorization = authorization;
 	}
@@ -68,20 +70,13 @@ public class BoiteAlerteService {
 	@Transactional(readOnly = true)
 	public long countSemiActifInconnue(Authentication authentication) {
 		authorization.requireAdmin(authentication);
-		LocalDate today = LocalDate.now();
-		return boiteRepository.count(semiActifAlerteSpec(null, null, today));
+		return collectSemiActifAlertes(LocalDate.now(), null).size();
 	}
 
 	@Transactional(readOnly = true)
 	public long countEcheanceDestructionTransfert(Authentication authentication) {
 		authorization.requireAdmin(authentication);
-		return boiteRepository.countEcheanceDestructionTransfertDue(
-			BordereauStatut.AFFECTE,
-			ConservationRuleStatus.VALIDE,
-			List.of(FinalDecision.DETRUIRE, FinalDecision.TRANSFERER),
-			BoiteEtatType.SEMI_ACTIF,
-			LocalDate.now().getYear()
-		);
+		return collectEcheanceAlertes(LocalDate.now(), null).size();
 	}
 
 	@Transactional(readOnly = true)
@@ -91,99 +86,27 @@ public class BoiteAlerteService {
 		Pageable pageable
 	) {
 		authorization.requireAdmin(authentication);
-		String qTrim = q == null || q.isBlank() ? null : q.trim();
-		String qEcheance = qTrim == null ? null : qTrim.toLowerCase();
+		String qTrim = normalizeSearch(q);
 		LocalDate today = LocalDate.now();
-		int currentYear = today.getYear();
 
-		Specification<Boite> semiSpec = semiActifAlerteSpec(null, qTrim, today);
-		Specification<Boite> echSpec = echeanceDestructionTransfertBaseSpec(null)
-			.and(echeanceDueYearSpec(currentYear));
-		if (qEcheance != null) {
-			echSpec = echSpec.and(echeanceSearchSpec(qEcheance));
-		}
+		List<BoiteAlerteArchivesRow> semiRows = collectSemiActifAlertes(today, qTrim).stream()
+			.map(box -> BoiteAlerteArchivesRow.semiActif(
+				toSemiActifAlerteResponse(box, resolveEffectiveRule(box), today)))
+			.toList();
+		List<BoiteAlerteArchivesRow> echRows = collectEcheanceAlertes(today, qTrim).stream()
+			.map(box -> BoiteAlerteArchivesRow.echeance(
+				toEcheanceAlerteResponse(box, resolveEffectiveRule(box), today).orElseThrow()))
+			.toList();
 
-		long semiTotal = boiteRepository.count(semiSpec);
-		long echTotal = boiteRepository.count(echSpec);
-		long total = semiTotal + echTotal;
+		List<BoiteAlerteArchivesRow> all = new ArrayList<>(semiRows.size() + echRows.size());
+		all.addAll(semiRows);
+		all.addAll(echRows);
 
 		int page = Math.max(0, pageable.getPageNumber());
 		int size = pageable.getPageSize() > 0 ? pageable.getPageSize() : 12;
-		int offset = page * size;
-
-		Sort semiSort = Sort.by(Sort.Order.asc("titre"));
-		Sort echSort = Sort.by(Sort.Order.asc("anneeMax"), Sort.Order.asc("titre"));
-
-		List<BoiteAlerteArchivesRow> content = new ArrayList<>();
-
-		if (offset < semiTotal) {
-			int semiTake = (int) Math.min(size, semiTotal - offset);
-			content.addAll(fetchSemiActifSlice(semiSpec, semiSort, offset, semiTake, size, today));
-		}
-
-		int remaining = size - content.size();
-		if (remaining > 0) {
-			int echOffset = (int) Math.max(0, offset - semiTotal);
-			content.addAll(fetchEcheanceSlice(echSpec, echSort, echOffset, remaining, size, today));
-		}
-
-		return new PageImpl<>(content, PageRequest.of(page, size), total);
-	}
-
-	private List<BoiteAlerteArchivesRow> fetchSemiActifSlice(
-		Specification<Boite> spec,
-		Sort sort,
-		int offset,
-		int take,
-		int pageSize,
-		LocalDate today
-	) {
-		if (take <= 0) {
-			return List.of();
-		}
-		int pageNum = offset / pageSize;
-		int skipInPage = offset % pageSize;
-		int fetchSize = skipInPage + take;
-		Page<Boite> page = boiteRepository.findAll(spec, PageRequest.of(pageNum, fetchSize, sort));
-		List<Boite> slice = page.getContent();
-		if (skipInPage >= slice.size()) {
-			return List.of();
-		}
-		int end = Math.min(skipInPage + take, slice.size());
-		List<BoiteAlerteArchivesRow> rows = new ArrayList<>();
-		for (Boite box : slice.subList(skipInPage, end)) {
-			rows.add(BoiteAlerteArchivesRow.semiActif(toSemiActifAlerteResponse(box, today)));
-		}
-		return rows;
-	}
-
-	private List<BoiteAlerteArchivesRow> fetchEcheanceSlice(
-		Specification<Boite> spec,
-		Sort sort,
-		int offset,
-		int take,
-		int pageSize,
-		LocalDate today
-	) {
-		if (take <= 0) {
-			return List.of();
-		}
-		int pageNum = offset / pageSize;
-		int skipInPage = offset % pageSize;
-		int fetchSize = skipInPage + take;
-		Page<Boite> page = boiteRepository.findAll(spec, PageRequest.of(pageNum, fetchSize, sort));
-		List<Boite> slice = page.getContent();
-		if (skipInPage >= slice.size()) {
-			return List.of();
-		}
-		int end = Math.min(skipInPage + take, slice.size());
-		List<BoiteAlerteArchivesRow> rows = new ArrayList<>();
-		for (Boite box : slice.subList(skipInPage, end)) {
-			toEcheanceAlerteResponse(box, today)
-				.map(BoiteAlerteArchivesRow::echeance)
-				.ifPresent(rows::add);
-		}
-		return rows;
+		int from = Math.min(page * size, all.size());
+		int to = Math.min(from + size, all.size());
+		return new PageImpl<>(all.subList(from, to), PageRequest.of(page, size), all.size());
 	}
 
 	@Transactional(readOnly = true)
@@ -193,10 +116,12 @@ public class BoiteAlerteService {
 		Pageable pageable
 	) {
 		authorization.requireAdmin(authentication);
-		String qTrim = q == null || q.isBlank() ? null : q.trim();
+		String qTrim = normalizeSearch(q);
 		LocalDate today = LocalDate.now();
-		Specification<Boite> spec = semiActifAlerteSpec(null, qTrim, today);
-		return boiteRepository.findAll(spec, pageable).map(box -> toSemiActifAlerteResponse(box, today));
+		List<BoiteSemiActifAlerteResponse> all = collectSemiActifAlertes(today, qTrim).stream()
+			.map(box -> toSemiActifAlerteResponse(box, resolveEffectiveRule(box), today))
+			.toList();
+		return paginateList(all, pageable);
 	}
 
 	@Transactional
@@ -218,17 +143,8 @@ public class BoiteAlerteService {
 		}
 		Boite box = boiteRepository.findById(boiteId)
 			.orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "BOITE_NOT_FOUND", "Boîte introuvable."));
-		ConservationRule rule = box.getConservationRule();
-		if (rule == null
-			|| rule.getStatus() != ConservationRuleStatus.VALIDE
-			|| !rule.isSemiActiveUnknown()
-			|| (rule.getFinalDecision() != FinalDecision.DETRUIRE && rule.getFinalDecision() != FinalDecision.TRANSFERER)) {
-			throw new ApiException(
-				HttpStatus.BAD_REQUEST,
-				"BOITE_NOT_IN_SEMI_ALERT",
-				"Cette boîte n’est pas concernée par une alerte de durée semi-active inconnue."
-			);
-		}
+		ConservationRule rule = requireSemiActifInconnueRule(box);
+		syncConservationRuleLink(box, rule);
 		if (box.getBordereau().getStatut() != BordereauStatut.AFFECTE) {
 			throw new ApiException(
 				HttpStatus.BAD_REQUEST,
@@ -238,7 +154,7 @@ public class BoiteAlerteService {
 		}
 		box.setSemiActifAlerteAnneeAffichage(annee);
 		boiteRepository.save(box);
-		return toSemiActifAlerteResponse(box, LocalDate.now());
+		return toSemiActifAlerteResponse(box, rule, LocalDate.now());
 	}
 
 	@Transactional(readOnly = true)
@@ -248,27 +164,12 @@ public class BoiteAlerteService {
 		Pageable pageable
 	) {
 		authorization.requireAdmin(authentication);
-		String qTrim = q == null || q.isBlank() ? null : q.trim().toLowerCase();
+		String qTrim = normalizeSearch(q);
 		LocalDate today = LocalDate.now();
-		int currentYear = today.getYear();
-
-		Specification<Boite> spec = echeanceDestructionTransfertBaseSpec(null)
-			.and(echeanceDueYearSpec(currentYear));
-		if (qTrim != null) {
-			spec = spec.and(echeanceSearchSpec(qTrim));
-		}
-
-		Pageable sorted = PageRequest.of(
-			pageable.getPageNumber(),
-			pageable.getPageSize(),
-			Sort.by(Sort.Order.asc("anneeMax"), Sort.Order.asc("titre"))
-		);
-		Page<Boite> page = boiteRepository.findAll(spec, sorted);
-		List<BoiteEcheanceAlerteResponse> content = page.getContent().stream()
-			.map(box -> toEcheanceAlerteResponse(box, today))
-			.flatMap(Optional::stream)
+		List<BoiteEcheanceAlerteResponse> all = collectEcheanceAlertes(today, qTrim).stream()
+			.map(box -> toEcheanceAlerteResponse(box, resolveEffectiveRule(box), today).orElseThrow())
 			.toList();
-		return new PageImpl<>(content, sorted, page.getTotalElements());
+		return paginateList(all, pageable);
 	}
 
 	@Transactional
@@ -277,24 +178,25 @@ public class BoiteAlerteService {
 		Boite box = boiteRepository.findById(boiteId)
 			.orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "BOITE_NOT_FOUND", "Boîte introuvable."));
 		LocalDate today = LocalDate.now();
-		Optional<BoiteEcheanceAlerteResponse> echeance = toEcheanceAlerteResponse(box, today);
+		ConservationRule rule = resolveEffectiveRule(box);
+		Optional<BoiteEcheanceAlerteResponse> echeance = toEcheanceAlerteResponse(box, rule, today);
 		if (echeance.isPresent()) {
-			executeApprobationDestructionTransfert(box, authentication);
+			syncConservationRuleLink(box, rule);
+			executeApprobationDestructionTransfert(box, rule, authentication);
 			return echeance.get();
 		}
-		if (!isSemiActifInconnueActionDue(box, today)) {
+		if (!isSemiActifInconnueActionDue(box, rule, today)) {
 			throw new ApiException(
 				HttpStatus.BAD_REQUEST,
 				"BOITE_NOT_IN_ECHEANCE_ALERT",
 				"Cette boîte n’est pas en alerte d’échéance destruction / transfert."
 			);
 		}
-		ConservationRule rule = box.getConservationRule();
 		int semiActiveYears = resolveSemiActiveYearsForApproval(box, today);
 		ConservationRule updatedRule = concludeSemiActiveDurationOnRule(rule, semiActiveYears);
 		box.setConservationRule(updatedRule);
 		int anneeFinPrevue = box.getAnneeMax() + semiActiveYears;
-		executeApprobationDestructionTransfert(box, authentication);
+		executeApprobationDestructionTransfert(box, updatedRule, authentication);
 		Bordereau br = box.getBordereau();
 		DocumentType dt = box.getDocumentType();
 		return new BoiteEcheanceAlerteResponse(
@@ -308,6 +210,150 @@ public class BoiteAlerteService {
 			updatedRule.getFinalDecision().name(),
 			anneeFinPrevue
 		);
+	}
+
+	private List<Boite> collectSemiActifAlertes(LocalDate today, String qTrim) {
+		return loadAlerteCandidates(null, qTrim).stream()
+			.filter(box -> matchesSemiActifAlerte(box, resolveEffectiveRule(box), today, qTrim))
+			.sorted(Comparator.comparing(Boite::getTitre, String.CASE_INSENSITIVE_ORDER))
+			.toList();
+	}
+
+	private List<Boite> collectEcheanceAlertes(LocalDate today, String qTrim) {
+		return loadAlerteCandidates(null, qTrim).stream()
+			.filter(box -> matchesEcheanceAlerte(box, resolveEffectiveRule(box), today, qTrim))
+			.sorted(Comparator
+				.comparingInt(Boite::getAnneeMax)
+				.thenComparing(Boite::getTitre, String.CASE_INSENSITIVE_ORDER))
+			.toList();
+	}
+
+	private List<Boite> loadAlerteCandidates(String userDirectionId, String qTrim) {
+		return boiteRepository.findAll(alerteCandidateSpec(userDirectionId, qTrim));
+	}
+
+	/**
+	 * Règle applicable à la boîte :
+	 * <ol>
+	 *   <li>règle liée si encore {@link ConservationRuleStatus#VALIDE} ;</li>
+	 *   <li>sinon règle valide courante du type de document ;</li>
+	 *   <li>sinon règle liée invalidée (boîte figée sur l’ancienne politique).</li>
+	 * </ol>
+	 */
+	private ConservationRule resolveEffectiveRule(Boite box) {
+		ConservationRule linked = box.getConservationRule();
+		if (linked != null && linked.getStatus() == ConservationRuleStatus.VALIDE) {
+			return linked;
+		}
+		DocumentType documentType = box.getDocumentType();
+		if (documentType != null && documentType.getId() != null) {
+			Optional<ConservationRule> valide = conservationRuleResolver.findValideRuleForDocumentType(documentType.getId());
+			if (valide.isPresent()) {
+				return valide.get();
+			}
+		}
+		if (linked != null && isDestructionOuTransfert(linked)) {
+			return linked;
+		}
+		return null;
+	}
+
+	private void syncConservationRuleLink(Boite box, ConservationRule rule) {
+		if (rule == null) {
+			return;
+		}
+		ConservationRule linked = box.getConservationRule();
+		if (linked == null || !rule.getId().equals(linked.getId())) {
+			box.setConservationRule(rule);
+			boiteRepository.save(box);
+		}
+	}
+
+	private ConservationRule requireSemiActifInconnueRule(Boite box) {
+		ConservationRule rule = resolveEffectiveRule(box);
+		if (rule == null
+			|| !rule.isSemiActiveUnknown()
+			|| (rule.getFinalDecision() != FinalDecision.DETRUIRE && rule.getFinalDecision() != FinalDecision.TRANSFERER)) {
+			throw new ApiException(
+				HttpStatus.BAD_REQUEST,
+				"BOITE_NOT_IN_SEMI_ALERT",
+				"Cette boîte n’est pas concernée par une alerte de durée semi-active inconnue."
+			);
+		}
+		return rule;
+	}
+
+	private boolean matchesSemiActifAlerte(Boite box, ConservationRule rule, LocalDate today, String qTrim) {
+		if (!isSemiActifEtat(box) || !isBordereauAffecte(box)) {
+			return false;
+		}
+		if (!isDestructionOuTransfert(rule) || rule == null || !rule.isSemiActiveUnknown()) {
+			return false;
+		}
+		Integer anneeAffichage = box.getSemiActifAlerteAnneeAffichage();
+		if (anneeAffichage != null && anneeAffichage > today.getYear()) {
+			return false;
+		}
+		return matchesAlerteSearch(box, rule, qTrim);
+	}
+
+	private boolean matchesEcheanceAlerte(Boite box, ConservationRule rule, LocalDate today, String qTrim) {
+		if (!isSemiActifEtat(box) || !isBordereauAffecte(box)) {
+			return false;
+		}
+		if (rule == null || !isDestructionOuTransfert(rule) || rule.isSemiActiveUnknown()) {
+			return false;
+		}
+		if (!ConservationDueDateCalculator.isDueForDestructionTransfertAlert(box, rule, today)) {
+			return false;
+		}
+		return matchesAlerteSearch(box, rule, qTrim);
+	}
+
+	private static boolean isBordereauAffecte(Boite box) {
+		Bordereau br = box.getBordereau();
+		return br != null && br.getStatut() == BordereauStatut.AFFECTE;
+	}
+
+	private static boolean isSemiActifEtat(Boite box) {
+		BoiteEtat courant = box.getEtatCourant();
+		return courant != null && courant.getTypeEtat() == BoiteEtatType.SEMI_ACTIF;
+	}
+
+	private static boolean isDestructionOuTransfert(ConservationRule rule) {
+		if (rule == null) {
+			return false;
+		}
+		FinalDecision fd = rule.getFinalDecision();
+		return fd == FinalDecision.DETRUIRE || fd == FinalDecision.TRANSFERER;
+	}
+
+	private boolean matchesAlerteSearch(Boite box, ConservationRule rule, String qTrim) {
+		if (qTrim == null || qTrim.isEmpty()) {
+			return true;
+		}
+		String qLower = qTrim.toLowerCase();
+		DocumentType dt = box.getDocumentType();
+		Bordereau br = box.getBordereau();
+		return containsIgnoreCase(box.getTitre(), qLower)
+			|| containsIgnoreCase(br == null ? null : br.getNumeroAffiche(), qLower)
+			|| containsIgnoreCase(dt == null ? null : dt.getTitle(), qLower)
+			|| containsIgnoreCase(rule.getReference(), qLower);
+	}
+
+	private static String normalizeSearch(String q) {
+		if (q == null || q.isBlank()) {
+			return null;
+		}
+		return q.trim();
+	}
+
+	private <T> Page<T> paginateList(List<T> all, Pageable pageable) {
+		int page = Math.max(0, pageable.getPageNumber());
+		int size = pageable.getPageSize() > 0 ? pageable.getPageSize() : 10;
+		int from = Math.min(page * size, all.size());
+		int to = Math.min(from + size, all.size());
+		return new PageImpl<>(all.subList(from, to), PageRequest.of(page, size), all.size());
 	}
 
 	private int resolveSemiActiveYearsForApproval(Boite box, LocalDate today) {
@@ -336,7 +382,11 @@ public class BoiteAlerteService {
 		return conservationRuleRepository.save(rule);
 	}
 
-	private void executeApprobationDestructionTransfert(Boite box, Authentication authentication) {
+	private void executeApprobationDestructionTransfert(
+		Boite box,
+		ConservationRule rule,
+		Authentication authentication
+	) {
 		BoiteEtat courant = box.getEtatCourant();
 		if (courant != null && courant.getTypeEtat() != BoiteEtatType.SEMI_ACTIF) {
 			throw new ApiException(
@@ -345,7 +395,6 @@ public class BoiteAlerteService {
 				"Cette boîte a déjà été validée pour destruction ou transfert."
 			);
 		}
-		ConservationRule rule = box.getConservationRule();
 		BoiteEtatAction action = rule != null && rule.getFinalDecision() == FinalDecision.TRANSFERER
 			? BoiteEtatAction.APPROBATION_TRANSFERT
 			: BoiteEtatAction.APPROBATION_DESTRUCTION;
@@ -357,22 +406,15 @@ public class BoiteAlerteService {
 		);
 	}
 
-	private boolean matchesEcheanceSearch(BoiteEcheanceAlerteResponse row, String qTrim) {
-		if (qTrim == null || qTrim.isEmpty()) {
-			return true;
-		}
-		return containsIgnoreCase(row.boiteTitre(), qTrim)
-			|| containsIgnoreCase(row.numeroBordereau(), qTrim)
-			|| containsIgnoreCase(row.regleReference(), qTrim)
-			|| containsIgnoreCase(row.documentTypeTitle(), qTrim);
-	}
-
 	private static boolean containsIgnoreCase(String value, String q) {
 		return value != null && value.toLowerCase().contains(q);
 	}
 
-	private Optional<BoiteEcheanceAlerteResponse> toEcheanceAlerteResponse(Boite box, LocalDate today) {
-		ConservationRule rule = box.getConservationRule();
+	private Optional<BoiteEcheanceAlerteResponse> toEcheanceAlerteResponse(
+		Boite box,
+		ConservationRule rule,
+		LocalDate today
+	) {
 		Optional<Integer> echeanceYearOpt = ConservationDueDateCalculator.computeEcheanceYear(box, rule);
 		if (echeanceYearOpt.isEmpty()
 			|| !ConservationDueDateCalculator.isDueForDestructionTransfertAlert(box, rule, today)) {
@@ -397,44 +439,20 @@ public class BoiteAlerteService {
 		));
 	}
 
-	private Specification<Boite> echeanceDueYearSpec(int currentYear) {
+	private Specification<Boite> alerteCandidateSpec(String userDirectionId, String q) {
 		return (root, query, cb) -> {
-			Join<Boite, ConservationRule> rule = root.join("conservationRule", JoinType.INNER);
-			return cb.lessThanOrEqualTo(
-				cb.sum(root.get("anneeMax"), rule.get("semiActiveYears")),
-				cb.literal((long) currentYear)
-			);
-		};
-	}
+			if (Boite.class.equals(query.getResultType())) {
+				root.fetch("bordereau", JoinType.INNER);
+				root.fetch("documentType", JoinType.INNER);
+				root.fetch("etatCourant", JoinType.INNER);
+				root.fetch("conservationRule", JoinType.LEFT);
+			}
 
-	private Specification<Boite> echeanceSearchSpec(String qTrim) {
-		return (root, query, cb) -> {
-			String like = "%" + qTrim + "%";
-			Join<Boite, Bordereau> br = root.join("bordereau", JoinType.INNER);
-			Join<Boite, ConservationRule> rule = root.join("conservationRule", JoinType.INNER);
-			Join<Boite, DocumentType> dt = root.join("documentType", JoinType.INNER);
-			return cb.or(
-				cb.like(cb.lower(root.get("titre")), like),
-				cb.like(cb.lower(br.get("numeroAffiche")), like),
-				cb.like(cb.lower(rule.get("reference")), like),
-				cb.like(cb.lower(dt.get("title")), like)
-			);
-		};
-	}
-
-	private Specification<Boite> echeanceDestructionTransfertBaseSpec(String userDirectionId) {
-		return (root, query, cb) -> {
 			List<Predicate> preds = new ArrayList<>();
 			Join<Boite, Bordereau> br = root.join("bordereau", JoinType.INNER);
-			Join<Boite, ConservationRule> rule = root.join("conservationRule", JoinType.INNER);
 			Join<Boite, DocumentType> dt = root.join("documentType", JoinType.INNER);
 
 			preds.add(cb.equal(br.get("statut"), BordereauStatut.AFFECTE));
-			preds.add(cb.equal(rule.get("status"), ConservationRuleStatus.VALIDE));
-			preds.add(rule.get("finalDecision").in(FinalDecision.DETRUIRE, FinalDecision.TRANSFERER));
-			preds.add(cb.isFalse(rule.get("semiActiveUnknown")));
-			preds.add(cb.isNotNull(rule.get("semiActiveYears")));
-			preds.add(cb.greaterThanOrEqualTo(rule.get("semiActiveYears"), 0));
 			ajouterFiltreEtatCourantSemiActif(root, cb, preds);
 
 			if (userDirectionId != null && !userDirectionId.isBlank()) {
@@ -442,22 +460,30 @@ public class BoiteAlerteService {
 				preds.add(cb.equal(dir.get("id"), userDirectionId));
 			}
 
+			if (q != null && !q.isEmpty()) {
+				String like = "%" + q.toLowerCase() + "%";
+				preds.add(cb.or(
+					cb.like(cb.lower(root.get("titre")), like),
+					cb.like(cb.lower(br.get("numeroAffiche")), like),
+					cb.like(cb.lower(dt.get("title")), like)
+				));
+			}
+
 			return cb.and(preds.toArray(Predicate[]::new));
 		};
 	}
 
 	/** {@code BOITES.ETAT_COURANT_ID} → {@code ETATS.TYPE_ETAT = SEMI_ACTIF}. */
-	private static void ajouterFiltreEtatCourantSemiActif(Root<Boite> root, CriteriaBuilder cb, List<Predicate> preds) {
+	private static void ajouterFiltreEtatCourantSemiActif(Root<Boite> root, jakarta.persistence.criteria.CriteriaBuilder cb, List<Predicate> preds) {
 		Join<Boite, BoiteEtat> etatCourant = root.join("etatCourant", JoinType.INNER);
 		preds.add(cb.equal(etatCourant.get("typeEtat"), BoiteEtatType.SEMI_ACTIF));
 	}
 
-	private BoiteSemiActifAlerteResponse toSemiActifAlerteResponse(Boite box, LocalDate today) {
-		ConservationRule rule = box.getConservationRule();
+	private BoiteSemiActifAlerteResponse toSemiActifAlerteResponse(Boite box, ConservationRule rule, LocalDate today) {
 		Bordereau br = box.getBordereau();
 		DocumentType dt = box.getDocumentType();
 		Integer anneeAffichage = box.getSemiActifAlerteAnneeAffichage();
-		boolean actionEcheance = isSemiActifInconnueActionDue(box, today);
+		boolean actionEcheance = isSemiActifInconnueActionDue(box, rule, today);
 		return new BoiteSemiActifAlerteResponse(
 			box.getId(),
 			box.getTitre(),
@@ -473,60 +499,14 @@ public class BoiteAlerteService {
 		);
 	}
 
-	private static boolean isSemiActifInconnueActionDue(Boite box, LocalDate today) {
+	private static boolean isSemiActifInconnueActionDue(Boite box, ConservationRule rule, LocalDate today) {
 		Integer anneeAffichage = box.getSemiActifAlerteAnneeAffichage();
 		if (anneeAffichage == null || anneeAffichage > today.getYear()) {
 			return false;
 		}
-		ConservationRule rule = box.getConservationRule();
-		if (rule == null
-			|| rule.getStatus() != ConservationRuleStatus.VALIDE
-			|| !rule.isSemiActiveUnknown()
-			|| (rule.getFinalDecision() != FinalDecision.DETRUIRE && rule.getFinalDecision() != FinalDecision.TRANSFERER)) {
+		if (!isSemiActifEtat(box) || !isBordereauAffecte(box)) {
 			return false;
 		}
-		Bordereau br = box.getBordereau();
-		if (br == null || br.getStatut() != BordereauStatut.AFFECTE) {
-			return false;
-		}
-		BoiteEtat courant = box.getEtatCourant();
-		return courant != null && courant.getTypeEtat() == BoiteEtatType.SEMI_ACTIF;
-	}
-
-	private Specification<Boite> semiActifAlerteSpec(String userDirectionId, String q, LocalDate today) {
-		return (root, query, cb) -> {
-			List<Predicate> preds = new ArrayList<>();
-			Join<Boite, Bordereau> br = root.join("bordereau", JoinType.INNER);
-			Join<Boite, ConservationRule> rule = root.join("conservationRule", JoinType.INNER);
-			Join<Boite, DocumentType> dt = root.join("documentType", JoinType.INNER);
-
-			preds.add(cb.equal(br.get("statut"), BordereauStatut.AFFECTE));
-			preds.add(cb.equal(rule.get("status"), ConservationRuleStatus.VALIDE));
-			preds.add(rule.get("finalDecision").in(FinalDecision.DETRUIRE, FinalDecision.TRANSFERER));
-			preds.add(cb.isTrue(rule.get("semiActiveUnknown")));
-			ajouterFiltreEtatCourantSemiActif(root, cb, preds);
-			int currentYear = today.getYear();
-			preds.add(cb.or(
-				cb.isNull(root.get("semiActifAlerteAnneeAffichage")),
-				cb.le(root.get("semiActifAlerteAnneeAffichage"), currentYear)
-			));
-
-			if (userDirectionId != null && !userDirectionId.isBlank()) {
-				Join<DocumentType, Direction> dir = dt.join("direction", JoinType.LEFT);
-				preds.add(cb.equal(dir.get("id"), userDirectionId));
-			}
-
-			if (q != null && !q.isEmpty()) {
-				String like = "%" + q.toLowerCase() + "%";
-				preds.add(cb.or(
-					cb.like(cb.lower(root.get("titre")), like),
-					cb.like(cb.lower(br.get("numeroAffiche")), like),
-					cb.like(cb.lower(rule.get("reference")), like),
-					cb.like(cb.lower(dt.get("title")), like)
-				));
-			}
-
-			return cb.and(preds.toArray(Predicate[]::new));
-		};
+		return rule != null && isDestructionOuTransfert(rule) && rule.isSemiActiveUnknown();
 	}
 }

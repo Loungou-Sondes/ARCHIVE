@@ -147,13 +147,8 @@ export class AlertesBordereauxTableComponent implements OnInit, AfterViewInit {
   }
 
   openPrimaryAction(row: AlertesBordereauRow): void {
-    if (this.config.mode === 'validation') {
-      void this.router.navigate(['/home', 'alertes-echeances', 'consulter', String(row.id)], {
-        queryParams: { validationAgents: '1' },
-      });
-      return;
-    }
-    void this.router.navigate(['/home', 'alertes-echeances', 'reprendre', String(row.id)]);
+    const queryParams = this.config.mode === 'validation' ? { validationAgents: '1' } : {};
+    void this.router.navigate(['/home', 'alertes-echeances', 'reprendre', String(row.id)], { queryParams });
   }
 
   openSupprimer(row: AlertesBordereauRow): void {

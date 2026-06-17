@@ -841,16 +841,16 @@ export class BordereauCreateFormComponent implements OnInit {
   }
 
   /**
-   * Après chargement des suggestions : en reprise, valide directement si possible ;
-   * sinon ouvre le dialogue (fragmentation ou sélection manuelle).
+   * Après chargement des suggestions : ouvre toujours le dialogue (comme en création admin),
+   * avec bascule en mode manuel si les propositions sont incomplètes en reprise.
    */
   private finaliserAssignationApresSuggestions(suggestions: BoiteBlocsSuggestion[]): void {
-    if (this.isResume()) {
-      if (!this.anyAffectSuggestionIncomplete()) {
-        this.validerAffectation();
-        return;
-      }
+    if (this.shouldOpenFragmentationDialog(suggestions)) {
+      this.crossTabletteDialogVisible.set(true);
+    } else {
       this.affectDialogVisible.set(true);
+    }
+    if (this.isResume() && this.anyAffectSuggestionIncomplete()) {
       this.activerModeManuel();
       this.messages.add({
         severity: 'warn',
@@ -858,12 +858,6 @@ export class BordereauCreateFormComponent implements OnInit {
         detail: this.i18n.t('bordereau.locationsIncompleteDetail'),
         life: 10000,
       });
-      return;
-    }
-    if (this.shouldOpenFragmentationDialog(suggestions)) {
-      this.crossTabletteDialogVisible.set(true);
-    } else {
-      this.affectDialogVisible.set(true);
     }
   }
 
