@@ -14,10 +14,15 @@ import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import jakarta.persistence.criteria.Predicate;
+import ommp.archives.audit.AuditAction;
+import ommp.archives.audit.AuditEntry;
+import ommp.archives.audit.AuditResourceType;
+import ommp.archives.dto.AdminResetPasswordRequest;
 import ommp.archives.dto.AgentListPageResponse;
 import ommp.archives.dto.AgentResponse;
 import ommp.archives.entity.UserDetail;
@@ -36,17 +41,23 @@ public class AgentService {
 	private final UserAccountRepository userAccountRepository;
 	private final UserDetailRepository userDetailRepository;
 	private final AuthorizationService authorization;
+	private final PasswordEncoder passwordEncoder;
+	private final AuditService auditService;
 
 	public AgentService(
 		AuthService authService,
 		UserAccountRepository userAccountRepository,
 		UserDetailRepository userDetailRepository,
-		AuthorizationService authorization
+		AuthorizationService authorization,
+		PasswordEncoder passwordEncoder,
+		AuditService auditService
 	) {
 		this.authService = authService;
 		this.userAccountRepository = userAccountRepository;
 		this.userDetailRepository = userDetailRepository;
 		this.authorization = authorization;
+		this.passwordEncoder = passwordEncoder;
+		this.auditService = auditService;
 	}
 
 	@Transactional(readOnly = true)
@@ -68,12 +79,10 @@ public class AgentService {
 	public AgentListPageResponse listAgents(
 		Authentication authentication,
 		String q,
-		Boolean passwordResetOnly,
 		Pageable pageable
 	) {
 		authorization.requireAdmin(authentication);
 		String qTrim = trimToNull(q);
-		boolean passwordResetFilter = Boolean.TRUE.equals(passwordResetOnly);
 		List<String> detailMatchingRegs = List.of();
 		List<String> detailMatchingUserIds = List.of();
 		List<String> harborMatchingUserIds = List.of();
@@ -88,7 +97,6 @@ public class AgentService {
 		}
 		Specification<UserAccount> spec = agentListSpec(
 			qTrim,
-			passwordResetOnly,
 			detailMatchingUserIds,
 			harborMatchingUserIds
 		);
@@ -113,16 +121,12 @@ public class AgentService {
 			page.getNumber(),
 			page.getSize(),
 			activeCount,
-			inactiveCount,
-			passwordResetFilter
-				? page.getTotalElements()
-				: userAccountRepository.countByPasswordResetRequestedTrue()
+			inactiveCount
 		);
 	}
 
 	private Specification<UserAccount> agentListSpec(
 		String qTrim,
-		Boolean passwordResetOnly,
 		List<String> detailMatchingUserIds,
 		List<String> harborMatchingUserIds
 	) {
@@ -132,9 +136,6 @@ public class AgentService {
 				cb.isNull(root.get("role")),
 				cb.notLike(cb.upper(root.get("role")), "%ADMIN%")
 			));
-			if (Boolean.TRUE.equals(passwordResetOnly)) {
-				preds.add(cb.isTrue(root.get("passwordResetRequested")));
-			}
 			if (qTrim != null && !qTrim.isEmpty()) {
 				String like = "%" + qTrim.toLowerCase() + "%";
 				List<Predicate> searchPreds = new ArrayList<>();
@@ -182,6 +183,46 @@ public class AgentService {
 		detail.setStatusId(targetStatus);
 		userDetailRepository.save(detail);
 		return merge(account, detail);
+	}
+
+	@Transactional
+	public void resetAgentPassword(Authentication authentication, String userId, AdminResetPasswordRequest request) {
+		authorization.requireAdmin(authentication);
+		if (userId == null || userId.isBlank()) {
+			throw new ApiException(HttpStatus.BAD_REQUEST, "INVALID_ID", "Identifiant invalide.");
+		}
+		String newPassword = trimToNull(request.newPassword());
+		String confirmPassword = trimToNull(request.confirmPassword());
+		if (newPassword == null || confirmPassword == null) {
+			throw new ApiException(HttpStatus.BAD_REQUEST, "PASSWORD_REQUIRED", "Mot de passe requis.");
+		}
+		if (newPassword.length() < 4) {
+			throw new ApiException(HttpStatus.BAD_REQUEST, "PASSWORD_TOO_SHORT", "Mot de passe trop court (4 caractères minimum).");
+		}
+		if (!newPassword.equals(confirmPassword)) {
+			throw new ApiException(HttpStatus.BAD_REQUEST, "PASSWORD_MISMATCH", "Les mots de passe ne correspondent pas.");
+		}
+		UserAccount account = userAccountRepository.findById(userId.trim())
+			.orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "USER_NOT_FOUND", "Utilisateur introuvable."));
+		UserDetail detail = resolveDetailForAccount(account).orElse(null);
+		Long statusId = detail != null ? detail.getStatusId() : null;
+		if (!AgentStatusCodes.isActive(statusId)) {
+			throw new ApiException(
+				HttpStatus.BAD_REQUEST,
+				"AGENT_INACTIVE",
+				"Impossible de réinitialiser le mot de passe d'un compte inactif."
+			);
+		}
+		account.setPassword(passwordEncoder.encode(newPassword));
+		userAccountRepository.save(account);
+		auditService.record(
+			authentication.getName(),
+			new AuditEntry(
+				AuditAction.PASSWORD_RESET_COMPLETE,
+				AuditResourceType.AUTH,
+				"Mot de passe réinitialisé par l'administrateur pour " + account.getUserName()
+			)
+		);
 	}
 
 	private Map<String, UserDetail> loadDetailsByRegistration(List<UserAccount> accounts) {
@@ -237,7 +278,7 @@ public class AgentService {
 			});
 	}
 
-	private AgentResponse merge(UserManagementResponse u, UserDetail d, boolean passwordResetRequested) {
+	private AgentResponse merge(UserManagementResponse u, UserDetail d) {
 		String phone = (d != null && d.getPhoneNumber() != null && !d.getPhoneNumber().isBlank())
 			? d.getPhoneNumber()
 			: u.phoneNumber();
@@ -259,8 +300,7 @@ public class AgentService {
 			d != null ? d.getPositionId() : null,
 			d != null ? d.getStatusId() : null,
 			d != null ? d.getDirectionId() : null,
-			u.harbor(),
-			passwordResetRequested);
+			u.harbor());
 	}
 
 	private AgentResponse merge(UserAccount account, UserDetail d) {
@@ -275,7 +315,7 @@ public class AgentService {
 			account.getRole(),
 			authService.readPortForUser(account.getId()),
 			reg);
-		return merge(synthetic, d, account.isPasswordResetRequested());
+		return merge(synthetic, d);
 	}
 
 	private static String normalizeReg(String r) {

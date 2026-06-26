@@ -1335,6 +1335,52 @@ body .modern-dialog.p-dialog.alertes-confirm-dialog,
   &.alertes-confirm-dialog--password-reset .alertes-confirm-dialog__emph {
     color: #be123c;
   }
+
+  &.alertes-confirm-dialog--password-reset .reset-password-fields {
+    width: 100%;
+    text-align: left;
+    align-self: stretch;
+
+    .field-label {
+      display: block;
+      margin: 0 0 0.45rem;
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: #475569;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .p-inputtext,
+    input.p-inputtext {
+      width: 100%;
+      background: #ffffff !important;
+      color: #111827 !important;
+      -webkit-text-fill-color: #111827 !important;
+      border: 1px solid #d1d5db !important;
+      border-radius: 0.5rem !important;
+      box-shadow: none !important;
+
+      &::placeholder {
+        color: #9ca3af !important;
+        -webkit-text-fill-color: #9ca3af !important;
+        opacity: 1;
+      }
+
+      &:focus {
+        border-color: #10b981 !important;
+        box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.15) !important;
+      }
+    }
+
+    input.p-inputtext:-webkit-autofill,
+    input.p-inputtext:-webkit-autofill:hover,
+    input.p-inputtext:-webkit-autofill:focus {
+      -webkit-text-fill-color: #111827 !important;
+      -webkit-box-shadow: 0 0 0 1000px #ffffff inset !important;
+      box-shadow: 0 0 0 1000px #ffffff inset !important;
+    }
+  }
 }
 
 /* Specific dialog variants */

@@ -313,18 +313,6 @@ export class HomeComponent implements OnInit {
         type: 'info',
       });
     }
-    if (c.passwordResetRequests > 0) {
-      items.push({
-        id: 'password-reset',
-        title: this.i18n.t('home.notifPasswordResetTitle'),
-        message:
-          c.passwordResetRequests === 1
-            ? this.i18n.t('home.notifPasswordResetMessageOne')
-            : this.i18n.t('home.notifPasswordResetMessageMany', { count: c.passwordResetRequests }),
-        icon: 'pi pi-key',
-        type: 'warning',
-      });
-    }
     this.notifications = items;
   }
 

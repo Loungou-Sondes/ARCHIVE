@@ -48,28 +48,20 @@ public class SecurityConfiguration {
 				.requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
 				.requestMatchers(HttpMethod.POST, "/api/auth/login").permitAll()
 				.requestMatchers(HttpMethod.POST, "/api/auth/logout").permitAll()
-				.requestMatchers(HttpMethod.POST, "/api/auth/password-reset-request/public").permitAll()
-				.requestMatchers(HttpMethod.POST, "/api/auth/password-reset-eligibility/public").permitAll()
-				.requestMatchers(HttpMethod.POST, "/api/auth/password-reset-complete/public").permitAll()
 
-				// —— Modules réservés administrateur (défense HTTP, complète les services) ——
+				// —— Modules réservés administrateur
 				.requestMatchers("/api/dashboard/stats").hasRole("ADMIN")
 				.requestMatchers("/api/agents", "/api/agents/**").hasRole("ADMIN")
 				.requestMatchers("/api/emplacements/**").hasRole("ADMIN")
 				.requestMatchers("/api/conservation-rules/**").hasRole("ADMIN")
 				.requestMatchers("/api/document-types/**").hasRole("ADMIN")
 				.requestMatchers("/api/alertes/**").hasRole("ADMIN")
-				.requestMatchers(
-					"/api/boites/alertes-archives",
-					"/api/boites/alertes-semi-actif",
-					"/api/boites/alertes-echeance-destruction-transfert"
-				).hasRole("ADMIN")
+				.requestMatchers("/api/boites/alertes-archives").hasRole("ADMIN")
 				.requestMatchers("/api/boites/archives-intermediaires/**").hasRole("ADMIN")
 				.requestMatchers("/api/boites/historique").hasRole("ADMIN")
 				.requestMatchers(HttpMethod.POST, "/api/boites/*/reporter-alerte-semi-actif").hasRole("ADMIN")
 				.requestMatchers(HttpMethod.POST, "/api/boites/*/approuver-destruction-transfert").hasRole("ADMIN")
 				.requestMatchers("/api/audit/**").hasRole("ADMIN")
-				.requestMatchers(HttpMethod.POST, "/api/auth/users/*/approve-password-reset").hasRole("ADMIN")
 				.requestMatchers("/api/bordereaux/validation-agents").hasRole("ADMIN")
 				.requestMatchers("/api/bordereaux/suggestion-emplacements-blocs").hasRole("ADMIN")
 				.requestMatchers("/api/bordereaux/blocs-libres").hasRole("ADMIN")

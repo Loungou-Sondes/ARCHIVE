@@ -7,12 +7,14 @@ import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import jakarta.validation.Valid;
+import ommp.archives.dto.AdminResetPasswordRequest;
 import ommp.archives.dto.AgentListPageResponse;
 import ommp.archives.dto.AgentResponse;
 import ommp.archives.dto.UpdateAgentActiveRequest;
@@ -32,10 +34,9 @@ public class AgentController {
 	public ResponseEntity<AgentListPageResponse> list(
 		Authentication authentication,
 		@RequestParam(required = false) String q,
-		@RequestParam(required = false) Boolean passwordResetOnly,
 		@PageableDefault(size = 10) Pageable pageable
 	) {
-		return ResponseEntity.ok(agentService.listAgents(authentication, q, passwordResetOnly, pageable));
+		return ResponseEntity.ok(agentService.listAgents(authentication, q, pageable));
 	}
 
 	@GetMapping("/{id}")
@@ -53,5 +54,15 @@ public class AgentController {
 		@Valid @RequestBody UpdateAgentActiveRequest request
 	) {
 		return ResponseEntity.ok(agentService.setAgentActive(authentication, id, request.active()));
+	}
+
+	@PutMapping("/{id}/password")
+	public ResponseEntity<Void> resetPassword(
+		Authentication authentication,
+		@PathVariable String id,
+		@Valid @RequestBody AdminResetPasswordRequest request
+	) {
+		agentService.resetAgentPassword(authentication, id, request);
+		return ResponseEntity.noContent().build();
 	}
 }

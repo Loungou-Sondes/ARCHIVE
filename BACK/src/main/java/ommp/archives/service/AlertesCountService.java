@@ -5,7 +5,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import ommp.archives.dto.alertes.AlertesCountResponse;
-import ommp.archives.repository.UserAccountRepository;
 import ommp.archives.security.AuthorizationService;
 
 @Service
@@ -14,20 +13,17 @@ public class AlertesCountService {
 	private final BordereauService bordereauService;
 	private final BoiteAlerteService boiteAlerteService;
 	private final EmplacementService emplacementService;
-	private final UserAccountRepository userAccountRepository;
 	private final AuthorizationService authorization;
 
 	public AlertesCountService(
 		BordereauService bordereauService,
 		BoiteAlerteService boiteAlerteService,
 		EmplacementService emplacementService,
-		UserAccountRepository userAccountRepository,
 		AuthorizationService authorization
 	) {
 		this.bordereauService = bordereauService;
 		this.boiteAlerteService = boiteAlerteService;
 		this.emplacementService = emplacementService;
-		this.userAccountRepository = userAccountRepository;
 		this.authorization = authorization;
 	}
 
@@ -42,16 +38,12 @@ public class AlertesCountService {
 		long boitesSemiActif = boiteAlerteService.countSemiActifInconnue(authentication);
 		long boitesEcheance = boiteAlerteService.countEcheanceDestructionTransfert(authentication);
 		long lignesPleines = emplacementService.countLignesPresquePleines(authentication);
-		long passwordResetRequests = authorization.isAdmin(authentication)
-			? userAccountRepository.countByPasswordResetRequestedTrue()
-			: 0L;
 		long total =
 			bordereauxEnAttente
 				+ bordereauxValidationAgents
 				+ boitesSemiActif
 				+ boitesEcheance
-				+ lignesPleines
-				+ passwordResetRequests;
+				+ lignesPleines;
 		return new AlertesCountResponse(
 			total,
 			bordereauxEnAttente,
@@ -59,8 +51,7 @@ public class AlertesCountService {
 			boitesSemiActif,
 			boitesEcheance,
 			lignesPleines,
-			0L,
-			passwordResetRequests
+			0L
 		);
 	}
 }

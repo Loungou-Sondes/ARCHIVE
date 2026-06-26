@@ -10,7 +10,6 @@ export interface AlertesCount {
   boitesEcheance: number;
   lignesPleines: number;
   reglesConservation: number;
-  passwordResetRequests: number;
 }
 
 const EMPTY: AlertesCount = {
@@ -21,7 +20,6 @@ const EMPTY: AlertesCount = {
   boitesEcheance: 0,
   lignesPleines: 0,
   reglesConservation: 0,
-  passwordResetRequests: 0,
 };
 
 @Injectable({ providedIn: 'root' })
@@ -75,7 +73,6 @@ function normalizeCounts(c: Partial<AlertesCount> | null | undefined): AlertesCo
   const boitesEcheance = Math.max(0, Number(c.boitesEcheance) || 0);
   const lignesPleines = Math.max(0, Number(c.lignesPleines) || 0);
   const reglesConservation = Math.max(0, Number(c.reglesConservation) || 0);
-  const passwordResetRequests = Math.max(0, Number(c.passwordResetRequests) || 0);
   return {
     bordereauxEnAttente,
     bordereauxValidationAgents,
@@ -83,14 +80,12 @@ function normalizeCounts(c: Partial<AlertesCount> | null | undefined): AlertesCo
     boitesEcheance,
     lignesPleines,
     reglesConservation,
-    passwordResetRequests,
     total:
       bordereauxEnAttente
       + bordereauxValidationAgents
       + boitesSemiActif
       + boitesEcheance
       + lignesPleines
-      + reglesConservation
-      + passwordResetRequests,
+      + reglesConservation,
   };
 }

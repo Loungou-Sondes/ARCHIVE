@@ -26,10 +26,6 @@ public final class AuditAction {
 
 	public static final String PROFILE_UPDATE = "PROFILE_UPDATE";
 
-	public static final String PASSWORD_RESET_REQUEST = "PASSWORD_RESET_REQUEST";
-
-	public static final String PASSWORD_RESET_APPROVE = "PASSWORD_RESET_APPROVE";
-
 	public static final String PASSWORD_RESET_COMPLETE = "PASSWORD_RESET_COMPLETE";
 
 

@@ -8,7 +8,6 @@ public record AlertesCountResponse(
 	long boitesSemiActif,
 	long boitesEcheance,
 	long lignesPleines,
-	long reglesConservation,
-	long passwordResetRequests
+	long reglesConservation
 ) {
 }

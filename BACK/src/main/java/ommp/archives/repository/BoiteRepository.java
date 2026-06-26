@@ -10,10 +10,6 @@ import org.springframework.data.repository.query.Param;
 
 import ommp.archives.dto.emplacement.BoiteBordereauNumeroProjection;
 import ommp.archives.entity.Boite;
-import ommp.archives.entity.BoiteEtatType;
-import ommp.archives.entity.BordereauStatut;
-import ommp.archives.entity.ConservationRuleStatus;
-import ommp.archives.entity.FinalDecision;
 
 public interface BoiteRepository extends JpaRepository<Boite, Long>, JpaSpecificationExecutor<Boite> {
 
@@ -24,28 +20,6 @@ public interface BoiteRepository extends JpaRepository<Boite, Long>, JpaSpecific
 		group by e.typeEtat
 		""")
 	List<Object[]> countGroupByEtatCourantType();
-
-	@Query("""
-		select count(b)
-		from Boite b
-		join b.bordereau br
-		join b.conservationRule rule
-		join b.etatCourant etat
-		where br.statut = :statutAffecte
-		  and rule.status = :statutValide
-		  and rule.finalDecision in :decisions
-		  and rule.semiActiveUnknown = false
-		  and rule.semiActiveYears is not null
-		  and etat.typeEtat = :etatSemiActif
-		  and (b.anneeMax + rule.semiActiveYears) <= :currentYear
-		""")
-	long countEcheanceDestructionTransfertDue(
-		@Param("statutAffecte") BordereauStatut statutAffecte,
-		@Param("statutValide") ConservationRuleStatus statutValide,
-		@Param("decisions") List<FinalDecision> decisions,
-		@Param("etatSemiActif") BoiteEtatType etatSemiActif,
-		@Param("currentYear") int currentYear
-	);
 
 	/** Lecture explicite de {@code BORDEREAUX.NUMERO_AFFICHE} pour la matrice (évite tout souci de double fetch). */
 	@Query("""

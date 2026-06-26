@@ -9,7 +9,6 @@ public record AgentListPageResponse(
 	int page,
 	int size,
 	long activeCount,
-	long inactiveCount,
-	long passwordResetPendingCount
+	long inactiveCount
 ) {
 }

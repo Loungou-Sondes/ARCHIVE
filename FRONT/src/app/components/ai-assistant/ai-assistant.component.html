@@ -1,0 +1,74 @@
+<div class="assistant-host">
+  <div class="assistant-page">
+    <section class="card modern-card assistant-card">
+      <header class="assistant-header">
+        <div class="flex align-items-center gap-3">
+          <div class="header-icon-container">
+            <i class="pi pi-comments" aria-hidden="true"></i>
+          </div>
+          <div>
+            <h4 class="card-title m-0">{{ 'aiAssistant.title' | transloco }}</h4>
+            <p class="card-subtitle m-0 mt-1">{{ 'aiAssistant.subtitle' | transloco }}</p>
+          </div>
+        </div>
+      </header>
+
+      <div class="assistant-messages scrollbar" [attr.aria-label]="'aiAssistant.title' | transloco">
+        <div
+          *ngFor="let msg of messages()"
+          class="assistant-msg"
+          [class.assistant-msg--user]="msg.role === 'user'"
+          [class.assistant-msg--assistant]="msg.role === 'assistant'">
+          <div class="assistant-msg__bubble">
+            <span class="assistant-msg__text">{{ msg.text }}</span>
+          </div>
+        </div>
+
+        <div class="assistant-msg assistant-msg--assistant" *ngIf="loading()">
+          <div class="assistant-msg__bubble assistant-msg__bubble--typing">
+            <span class="assistant-typing" aria-hidden="true">
+              <span></span><span></span><span></span>
+            </span>
+            <span class="visually-hidden">{{ 'aiAssistant.thinking' | transloco }}</span>
+          </div>
+        </div>
+
+        <div #messagesEnd></div>
+      </div>
+
+      <div class="assistant-suggestions" *ngIf="suggestions().length && !loading()">
+        <span class="assistant-suggestions__label">{{ 'aiAssistant.examplesLabel' | transloco }}</span>
+        <button
+          type="button"
+          class="assistant-suggestion"
+          *ngFor="let s of suggestions()"
+          (click)="sendSuggestion(s)">
+          {{ s }}
+        </button>
+      </div>
+
+      <footer class="assistant-footer">
+        <div class="assistant-input-wrap">
+          <i class="pi pi-comment" aria-hidden="true"></i>
+          <input
+            #inputField
+            pInputText
+            type="text"
+            class="assistant-input w-full"
+            [(ngModel)]="inputText"
+            [placeholder]="'aiAssistant.placeholder' | transloco"
+            [disabled]="loading()"
+            (keyup.enter)="send()" />
+        </div>
+        <button
+          pButton
+          type="button"
+          class="assistant-send"
+          icon="pi pi-send"
+          [label]="'aiAssistant.send' | transloco"
+          [disabled]="loading() || !inputText.trim()"
+          (click)="send()"></button>
+      </footer>
+    </section>
+  </div>
+</div>

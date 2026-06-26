@@ -109,21 +109,6 @@ public class BoiteAlerteService {
 		return new PageImpl<>(all.subList(from, to), PageRequest.of(page, size), all.size());
 	}
 
-	@Transactional(readOnly = true)
-	public Page<BoiteSemiActifAlerteResponse> listSemiActifInconnue(
-		Authentication authentication,
-		String q,
-		Pageable pageable
-	) {
-		authorization.requireAdmin(authentication);
-		String qTrim = normalizeSearch(q);
-		LocalDate today = LocalDate.now();
-		List<BoiteSemiActifAlerteResponse> all = collectSemiActifAlertes(today, qTrim).stream()
-			.map(box -> toSemiActifAlerteResponse(box, resolveEffectiveRule(box), today))
-			.toList();
-		return paginateList(all, pageable);
-	}
-
 	@Transactional
 	public BoiteSemiActifAlerteResponse reporterSemiActifAlerte(
 		Authentication authentication,
@@ -155,21 +140,6 @@ public class BoiteAlerteService {
 		box.setSemiActifAlerteAnneeAffichage(annee);
 		boiteRepository.save(box);
 		return toSemiActifAlerteResponse(box, rule, LocalDate.now());
-	}
-
-	@Transactional(readOnly = true)
-	public Page<BoiteEcheanceAlerteResponse> listEcheanceDestructionTransfert(
-		Authentication authentication,
-		String q,
-		Pageable pageable
-	) {
-		authorization.requireAdmin(authentication);
-		String qTrim = normalizeSearch(q);
-		LocalDate today = LocalDate.now();
-		List<BoiteEcheanceAlerteResponse> all = collectEcheanceAlertes(today, qTrim).stream()
-			.map(box -> toEcheanceAlerteResponse(box, resolveEffectiveRule(box), today).orElseThrow())
-			.toList();
-		return paginateList(all, pageable);
 	}
 
 	@Transactional
@@ -346,14 +316,6 @@ public class BoiteAlerteService {
 			return null;
 		}
 		return q.trim();
-	}
-
-	private <T> Page<T> paginateList(List<T> all, Pageable pageable) {
-		int page = Math.max(0, pageable.getPageNumber());
-		int size = pageable.getPageSize() > 0 ? pageable.getPageSize() : 10;
-		int from = Math.min(page * size, all.size());
-		int to = Math.min(from + size, all.size());
-		return new PageImpl<>(all.subList(from, to), PageRequest.of(page, size), all.size());
 	}
 
 	private int resolveSemiActiveYearsForApproval(Boite box, LocalDate today) {

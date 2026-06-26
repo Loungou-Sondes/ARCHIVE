@@ -16,7 +16,6 @@ import { TableLazyLoadEvent, TableModule } from 'primeng/table';
 import { TooltipModule } from 'primeng/tooltip';
 import { MessageService } from 'primeng/api';
 import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
-import { AlertesCountService } from '../../services/alertes-count.service';
 import { AppTranslateService } from '../../core/i18n/app-translate.service';
 
 interface DirectionOption {
@@ -32,7 +31,6 @@ interface AgentListPage {
   size: number;
   activeCount: number;
   inactiveCount: number;
-  passwordResetPendingCount: number;
 }
 
 /** Aligné sur {@code AgentResponse} (API {@code /api/agents}). */
@@ -53,9 +51,7 @@ export interface AgentRow {
   positionId?: string | null;
   statusId: number | null;
   directionId: string | null;
-  /** Libellé port ({@code USERS.HARBOR}). */
   port: string | null;
-  passwordResetRequested?: boolean;
 }
 
 @Component({
@@ -72,16 +68,13 @@ export class GestionAgentComponent implements OnInit {
   private readonly i18n = inject(AppTranslateService);
   private readonly transloco = inject(TranslocoService);
   private readonly destroyRef = inject(DestroyRef);
-  private readonly alertesCount = inject(AlertesCountService);
 
   readonly pageReportTemplate = signal(this.i18n.t('common.pageReportEntries'));
-
   readonly agents = signal<AgentRow[]>([]);
   readonly totalRecords = signal(0);
   readonly totalAgents = signal(0);
   readonly activeCount = signal(0);
   readonly inactiveCount = signal(0);
-  readonly passwordResetCount = signal(0);
   readonly directionOptions = signal<DirectionOption[]>([]);
   readonly loadingTable = signal(false);
   pageSize = 10;
@@ -96,6 +89,10 @@ export class GestionAgentComponent implements OnInit {
 
   passwordResetDialogVisible = false;
   pendingPasswordResetAgent: AgentRow | null = null;
+  newPassword = '';
+  confirmNewPassword = '';
+  newPasswordVisible = false;
+  confirmNewPasswordVisible = false;
   resettingPasswordId = signal<string | null>(null);
 
   ngOnInit(): void {
@@ -193,7 +190,6 @@ export class GestionAgentComponent implements OnInit {
         this.totalAgents.set(active + inactive);
         this.activeCount.set(active);
         this.inactiveCount.set(inactive);
-        this.passwordResetCount.set(res?.passwordResetPendingCount ?? 0);
         this.loadingTable.set(false);
       },
       error: (err) => {
@@ -355,45 +351,86 @@ export class GestionAgentComponent implements OnInit {
   }
 
   openPasswordReset(agent: AgentRow): void {
+    if (!this.isAgentActive(agent)) {
+      return;
+    }
     this.pendingPasswordResetAgent = agent;
+    this.newPassword = '';
+    this.confirmNewPassword = '';
+    this.newPasswordVisible = false;
+    this.confirmNewPasswordVisible = false;
     this.passwordResetDialogVisible = true;
   }
 
   cancelPasswordReset(): void {
     this.passwordResetDialogVisible = false;
     this.pendingPasswordResetAgent = null;
+    this.newPassword = '';
+    this.confirmNewPassword = '';
   }
 
   confirmPasswordReset(): void {
     const agent = this.pendingPasswordResetAgent;
     const id = agent?.id?.trim();
+    const p1 = this.newPassword;
+    const p2 = this.confirmNewPassword;
     if (!id) {
       return;
     }
+    if (!p1 || !p2) {
+      this.messageService.add({
+        severity: 'warn',
+        summary: this.i18n.t('agents.resetPasswordDialogTitle'),
+        detail: this.i18n.t('agents.resetPasswordFieldsRequired'),
+      });
+      return;
+    }
+    if (p1.length < 4) {
+      this.messageService.add({
+        severity: 'warn',
+        summary: this.i18n.t('agents.resetPasswordDialogTitle'),
+        detail: this.i18n.t('agents.resetPasswordTooShort'),
+      });
+      return;
+    }
+    if (p1 !== p2) {
+      this.messageService.add({
+        severity: 'warn',
+        summary: this.i18n.t('agents.resetPasswordDialogTitle'),
+        detail: this.i18n.t('agents.resetPasswordMismatch'),
+      });
+      return;
+    }
+
     this.resettingPasswordId.set(id);
-    this.http.post(`${environment.apiUrl}/api/auth/users/${encodeURIComponent(id)}/approve-password-reset`, {}).subscribe({
-      next: () => {
-        this.resettingPasswordId.set(null);
-        this.passwordResetDialogVisible = false;
-        this.pendingPasswordResetAgent = null;
-        this.messageService.add({
-          severity: 'success',
-          summary: this.i18n.t('agents.approvePasswordResetSummary'),
-          detail: this.i18n.t('agents.approvePasswordResetSuccess', { user: agent?.userName ?? id }),
-          life: 8000,
-        });
-        this.refreshTable();
-        this.alertesCount.refresh();
-      },
-      error: (err) => {
-        this.resettingPasswordId.set(null);
-        this.messageService.add({
-          severity: 'error',
-          summary: this.i18n.apiErrorSummary(err),
-          detail: this.i18n.apiErrorDetail(err, 'agents.approvePasswordResetError'),
-          life: 8000,
-        });
-      },
-    });
+    this.http
+      .put(`${environment.apiUrl}/api/agents/${encodeURIComponent(id)}/password`, {
+        newPassword: p1,
+        confirmPassword: p2,
+      })
+      .subscribe({
+        next: () => {
+          this.resettingPasswordId.set(null);
+          this.passwordResetDialogVisible = false;
+          this.pendingPasswordResetAgent = null;
+          this.newPassword = '';
+          this.confirmNewPassword = '';
+          this.messageService.add({
+            severity: 'success',
+            summary: this.i18n.t('agents.resetPasswordSummary'),
+            detail: this.i18n.t('agents.resetPasswordSuccess', { user: agent?.userName ?? id }),
+            life: 8000,
+          });
+        },
+        error: (err) => {
+          this.resettingPasswordId.set(null);
+          this.messageService.add({
+            severity: 'error',
+            summary: this.i18n.apiErrorSummary(err),
+            detail: this.i18n.apiErrorDetail(err, 'agents.resetPasswordError'),
+            life: 8000,
+          });
+        },
+      });
   }
 }

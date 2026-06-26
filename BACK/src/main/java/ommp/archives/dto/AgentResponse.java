@@ -23,7 +23,6 @@ public record AgentResponse(
 	Long statusId,
 	String directionId,
 	/** Libellé port — colonne optionnelle {@code USERS.HARBOR}. */
-	String port,
-	boolean passwordResetRequested
+	String port
 ) {
 }

@@ -12,7 +12,6 @@ import { AlertesArchivesBoitesComponent } from './alertes-archives-boites.compon
 import { AlertesLignesPleinesComponent } from './alertes-lignes-pleines.component';
 import { AlertesBordereauxEnAttenteComponent } from './alertes-bordereaux-en-attente.component';
 import { AlertesValidationAgentsComponent } from './alertes-validation-agents.component';
-import { AlertesPasswordResetComponent } from './alertes-password-reset.component';
 
 @Component({
   selector: 'app-alertes-bordereaux',
@@ -28,7 +27,6 @@ import { AlertesPasswordResetComponent } from './alertes-password-reset.componen
     AlertesLignesPleinesComponent,
     AlertesBordereauxEnAttenteComponent,
     AlertesValidationAgentsComponent,
-    AlertesPasswordResetComponent,
   ],
   templateUrl: './alertes-bordereaux.component.html',
   styleUrl: './alertes-bordereaux.component.scss',
@@ -42,7 +40,6 @@ export class AlertesBordereauxComponent implements AfterViewInit {
   @ViewChild('lignesPleines') lignesPleines?: AlertesLignesPleinesComponent;
   @ViewChild('enAttente') enAttente?: AlertesBordereauxEnAttenteComponent;
   @ViewChild('validationAgents') validationAgents?: AlertesValidationAgentsComponent;
-  @ViewChild('passwordReset') passwordReset?: AlertesPasswordResetComponent;
 
   readonly boxAlertCount = signal(0);
   readonly lignesAlertCount = signal(0);
@@ -50,9 +47,7 @@ export class AlertesBordereauxComponent implements AfterViewInit {
   readonly pendingBordereauxCount = computed(() => this.alertesCount.counts().bordereauxEnAttente);
 
   readonly agentActionsCount = computed(
-    () =>
-      this.alertesCount.counts().bordereauxValidationAgents
-      + this.alertesCount.counts().passwordResetRequests,
+    () => this.alertesCount.counts().bordereauxValidationAgents,
   );
 
   ngAfterViewInit(): void {
@@ -64,7 +59,6 @@ export class AlertesBordereauxComponent implements AfterViewInit {
     this.lignesPleines?.reload();
     if (this.auth.isAdmin()) {
       this.enAttente?.reload();
-      this.passwordReset?.reload();
       this.validationAgents?.reload();
     }
     this.alertesCount.refresh();

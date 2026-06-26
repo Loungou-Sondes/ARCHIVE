@@ -120,6 +120,12 @@ export class MenuComponent implements OnInit {
           icon: 'fa-solid fa-magnifying-glass',
           routerLink: ['/home', 'recherche'],
         },
+        {
+          labelKey: 'menu.aiAssistant',
+          icon: 'fa-solid fa-robot',
+          routerLink: ['/home', 'assistant-ai'],
+          adminOnly: true,
+        },
       ],
     },
   ];

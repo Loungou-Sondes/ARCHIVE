@@ -175,6 +175,13 @@ export const routes: Routes = [
         loadComponent: () => import('./components/recherche/recherche.component').then((m) => m.RechercheComponent),
         data: { titleKey: 'routes.boxSearch' },
       },
+      {
+        path: 'assistant-ai',
+        loadComponent: () =>
+          import('./components/ai-assistant/ai-assistant.component').then((m) => m.AiAssistantComponent),
+        canActivate: [adminGuard],
+        data: { titleKey: 'routes.aiAssistant' },
+      },
     ],
   },
   { path: 'recherche', redirectTo: 'home/recherche', pathMatch: 'full' },

@@ -17,9 +17,6 @@ public interface UserAccountRepository extends JpaRepository<UserAccount, String
 
 	@Query("SELECT u FROM UserAccount u WHERE LOWER(u.userName) = LOWER(:userName)")
 	Optional<UserAccount> findByUserNameIgnoreCase(@Param("userName") String userName);
-
-	long countByPasswordResetRequestedTrue();
-
 	/**
 	 * Projection sans charger PASSWORD ni autres colonnes (Oracle / grosses lignes).
 	 */

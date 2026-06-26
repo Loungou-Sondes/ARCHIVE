@@ -96,15 +96,6 @@ public class BoiteController {
 		return ResponseEntity.ok(boiteAlerteService.listAlertesArchives(authentication, q, pageable));
 	}
 
-	@GetMapping("/alertes-semi-actif")
-	public ResponseEntity<Page<BoiteSemiActifAlerteResponse>> listSemiActifAlertes(
-		Authentication authentication,
-		@RequestParam(required = false) String q,
-		@PageableDefault(size = 10, sort = "titre") Pageable pageable
-	) {
-		return ResponseEntity.ok(boiteAlerteService.listSemiActifInconnue(authentication, q, pageable));
-	}
-
 	@PostMapping("/{id}/reporter-alerte-semi-actif")
 	public ResponseEntity<BoiteSemiActifAlerteResponse> reporterSemiActifAlerte(
 		Authentication authentication,
@@ -112,15 +103,6 @@ public class BoiteController {
 		@Valid @RequestBody ReporterSemiActifAlerteRequest request
 	) {
 		return ResponseEntity.ok(boiteAlerteService.reporterSemiActifAlerte(authentication, id, request.annee()));
-	}
-
-	@GetMapping("/alertes-echeance-destruction-transfert")
-	public ResponseEntity<Page<BoiteEcheanceAlerteResponse>> listEcheanceDestructionTransfert(
-		Authentication authentication,
-		@RequestParam(required = false) String q,
-		@PageableDefault(size = 10) Pageable pageable
-	) {
-		return ResponseEntity.ok(boiteAlerteService.listEcheanceDestructionTransfert(authentication, q, pageable));
 	}
 
 	@PostMapping("/{id}/approuver-destruction-transfert")

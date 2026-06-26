@@ -17,9 +17,6 @@
         @if (inactiveCount() > 0) {
           <span class="meta-pill meta-pill--ko">{{ inactiveCountLabel() }}</span>
         }
-        @if (passwordResetCount() > 0) {
-          <span class="meta-pill meta-pill--warn">{{ 'agents.passwordResetPendingCount' | transloco: { count: passwordResetCount() } }}</span>
-        }
         <button
           pButton
           pRipple
@@ -123,22 +120,19 @@
               <span class="badge-status__dot" aria-hidden="true"></span>
               {{ statusLabel(agent) }}
             </span>
-            @if (agent.passwordResetRequested) {
-              <span class="badge-password-reset mt-1">{{ 'agents.passwordResetBadge' | transloco }}</span>
-            }
           </td>
           <td class="col-actions">
             <div class="row-actions">
-              @if (agent.passwordResetRequested) {
+              @if (isAgentActive(agent)) {
                 <button
                   pButton
                   pRipple
                   type="button"
-                  icon="pi pi-check-circle"
+                  icon="pi pi-key"
                   class="icon-action icon-action--reset p-button-rounded p-button-text"
-                  [pTooltip]="'agents.approvePasswordResetAction' | transloco"
+                  [pTooltip]="'agents.resetPasswordAction' | transloco"
                   tooltipPosition="top"
-                  [attr.aria-label]="'agents.approvePasswordResetAction' | transloco"
+                  [attr.aria-label]="'agents.resetPasswordAction' | transloco"
                   [loading]="resettingPasswordId() === agent.id"
                   [disabled]="!agent.id?.trim() || resettingPasswordId() === agent.id"
                   (click)="openPasswordReset(agent)"></button>
@@ -298,7 +292,7 @@
     [closable]="true"
     [draggable]="false"
     [resizable]="false"
-    [header]="'agents.approvePasswordResetDialogTitle' | transloco"
+    [header]="'agents.resetPasswordDialogTitle' | transloco"
     [style]="{ width: 'min(96vw, 40rem)' }"
     styleClass="modern-dialog alertes-dialog-portal alertes-confirm-dialog alertes-confirm-dialog--password-reset"
     appendTo="body"
@@ -313,11 +307,31 @@
             <i class="pi pi-key"></i>
           </div>
           <p class="alertes-confirm-dialog__message">
-            {{ 'agents.approvePasswordResetDialogLead' | transloco: { user: agent.userName || agent.id } }}
+            {{ 'agents.resetPasswordDialogLead' | transloco: { user: agent.userName || agent.id } }}
           </p>
           <p class="alertes-confirm-dialog__hint m-0">
-            {{ 'agents.approvePasswordResetDialogHint' | transloco }}
+            {{ 'agents.resetPasswordDialogHint' | transloco }}
           </p>
+          <div class="reset-password-fields mt-3">
+            <label class="field-label" for="admin-new-password">{{ 'agents.resetPasswordNew' | transloco }}</label>
+            <input
+              id="admin-new-password"
+              pInputText
+              class="w-full mb-3"
+              [type]="newPasswordVisible ? 'text' : 'password'"
+              [(ngModel)]="newPassword"
+              [placeholder]="'agents.resetPasswordNewPlaceholder' | transloco"
+              autocomplete="new-password" />
+            <label class="field-label" for="admin-confirm-password">{{ 'agents.resetPasswordConfirmLabel' | transloco }}</label>
+            <input
+              id="admin-confirm-password"
+              pInputText
+              class="w-full"
+              [type]="confirmNewPasswordVisible ? 'text' : 'password'"
+              [(ngModel)]="confirmNewPassword"
+              [placeholder]="'agents.resetPasswordConfirmPlaceholder' | transloco"
+              autocomplete="new-password" />
+          </div>
         </div>
         <div class="alertes-confirm-dialog__actions">
           <button
@@ -333,7 +347,7 @@
             pButton
             pRipple
             type="button"
-            [label]="'agents.approvePasswordResetConfirm' | transloco"
+            [label]="'agents.resetPasswordConfirm' | transloco"
             icon="pi pi-check"
             class="alertes-confirm-dialog__btn-primary"
             [loading]="resettingPasswordId() !== null"

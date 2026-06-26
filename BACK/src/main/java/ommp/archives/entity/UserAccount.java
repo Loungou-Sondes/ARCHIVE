@@ -47,14 +47,6 @@ public class UserAccount {
 	@Column(name = "USER_REGISTRATION_NUMBER", length = 255)
 	private String userRegistrationNumber;
 
-	/** Demande de réinitialisation du mot de passe (traitée par l'administrateur). */
-	@Column(name = "PASSWORD_RESET_REQUESTED", nullable = false)
-	private boolean passwordResetRequested = false;
-
-	/** Réinitialisation autorisée par l'admin — l'utilisateur peut définir son mot de passe. */
-	@Column(name = "PASSWORD_RESET_APPROVED", nullable = false)
-	private boolean passwordResetApproved = false;
-
 	public String getId() {
 		return id;
 	}
@@ -117,21 +109,5 @@ public class UserAccount {
 
 	public void setUserRegistrationNumber(String userRegistrationNumber) {
 		this.userRegistrationNumber = userRegistrationNumber;
-	}
-
-	public boolean isPasswordResetRequested() {
-		return passwordResetRequested;
-	}
-
-	public void setPasswordResetRequested(boolean passwordResetRequested) {
-		this.passwordResetRequested = passwordResetRequested;
-	}
-
-	public boolean isPasswordResetApproved() {
-		return passwordResetApproved;
-	}
-
-	public void setPasswordResetApproved(boolean passwordResetApproved) {
-		this.passwordResetApproved = passwordResetApproved;
 	}
 }

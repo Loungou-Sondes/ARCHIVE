@@ -3,7 +3,6 @@ package ommp.archives.controller;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -17,9 +16,6 @@ import ommp.archives.auth.SessionCookieService;
 import ommp.archives.dto.LoginRequest;
 import ommp.archives.dto.LoginResponse;
 import ommp.archives.dto.LoginResult;
-import ommp.archives.dto.CompletePasswordResetRequest;
-import ommp.archives.dto.PasswordResetEligibilityResponse;
-import ommp.archives.dto.PasswordResetRequest;
 import ommp.archives.dto.UpdateUserProfileRequest;
 import ommp.archives.dto.UserInfoResponse;
 import ommp.archives.dto.UserProfileResponse;
@@ -69,30 +65,5 @@ public class AuthController {
         @Valid @RequestBody UpdateUserProfileRequest request
     ) {
         return ResponseEntity.ok(authService.updateCurrentUserProfile(authentication, request));
-    }
-
-    @PostMapping("/password-reset-request/public")
-    public ResponseEntity<Void> requestPasswordResetPublic(@Valid @RequestBody PasswordResetRequest request) {
-        authService.requestPasswordResetAnonymous(request);
-        return ResponseEntity.noContent().build();
-    }
-
-    @PostMapping("/password-reset-eligibility/public")
-    public ResponseEntity<PasswordResetEligibilityResponse> checkPasswordResetEligibility(
-        @Valid @RequestBody PasswordResetRequest request
-    ) {
-        return ResponseEntity.ok(authService.checkPasswordResetEligibility(request));
-    }
-
-    @PostMapping("/password-reset-complete/public")
-    public ResponseEntity<Void> completePasswordResetPublic(@Valid @RequestBody CompletePasswordResetRequest request) {
-        authService.completePasswordResetAnonymous(request);
-        return ResponseEntity.noContent().build();
-    }
-
-    @PostMapping("/users/{id}/approve-password-reset")
-    public ResponseEntity<Void> approvePasswordReset(Authentication authentication, @PathVariable String id) {
-        authService.approvePasswordReset(authentication, id);
-        return ResponseEntity.noContent().build();
     }
 }
